@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:quitter/addiction_provider.dart';
 import 'package:quitter/comic_style.dart';
 import 'package:quitter/gitty_companion.dart';
-import 'package:quitter/gitty_content.dart';
+import 'package:quitter/gitty_content_more.dart';
 import 'package:quitter/gitty_motivation.dart';
 import 'package:quitter/gitty_voice.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
@@ -254,7 +254,7 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
         final elapsed = DateTime.now().difference(habit.start);
         final days = elapsed.isNegative ? 0 : elapsed.inDays;
         final dayNumber = days + 1;
-        final dayContent = gittyDayFor(habit.key, dayNumber);
+        final dayContent = gittyDayAnyFor(habit.key, dayNumber);
         final motivation = gittyMotivationFor(_reasons, habit.key, dayNumber);
         final intro = motivation == null || companion == null
             ? null
