@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quitter/addiction_provider.dart';
 import 'package:quitter/gitty_companion.dart';
+import 'package:quitter/gitty_voice.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -305,6 +306,20 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                       ),
                     ],
                   ),
+                  if (companion != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      gittyVoiceLine(
+                        companionId: companion.id,
+                        dayNumber: dayNumber,
+                        saved: cost == 0 ? '' : _euro(totalSaved),
+                      ),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: on,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                   if (habits.length > 1) ...[
                     const SizedBox(height: 8),
                     Wrap(
