@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:quitter/addiction_provider.dart';
 import 'package:quitter/gitty_companion.dart';
 import 'package:quitter/gitty_content.dart';
+import 'package:quitter/gitty_motivation.dart';
 import 'package:quitter/gitty_voice.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -28,6 +29,7 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
   static const _milestones = [1, 3, 7, 14, 30, 60, 90, 180, 365];
 
   final Map<String, double> _costs = {};
+  List<String> _reasons = [];
   String? _selectedKey;
   String? _companionId;
   bool _pickerOpen = false;
@@ -49,12 +51,14 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
       }
     }
     final companion = prefs.getString(_companionKey);
+    final reasons = prefs.getStringList(gittyMotivationKey) ?? [];
     if (!mounted) return;
     setState(() {
       _costs
         ..clear()
         ..addAll(loaded);
       _companionId = companion;
+      _reasons = List<String>.from(reasons);
     });
     if (companion == null) _openPicker(first: true);
   }
@@ -71,6 +75,19 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
     );
     _pickerOpen = false;
     if (id != null && mounted) setState(() => _companionId = id);
+  }
+
+  Future<void> _openMotivations() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const GittyMotivationPage()),
+    );
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted) return;
+    setState(() {
+      _reasons = List<String>.from(
+        prefs.getStringList(gittyMotivationKey) ?? [],
+      );
+    });
   }
 
   Future<void> _saveCost(String key, double value) async {
@@ -232,6 +249,11 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
         final days = elapsed.isNegative ? 0 : elapsed.inDays;
         final dayNumber = days + 1;
         final dayContent = gittyDayFor(habit.key, dayNumber);
+        final motivation = gittyMotivationFor(_reasons, habit.key, dayNumber);
+        final intro = motivation == null || companion == null
+            ? null
+            : gittyMotivationIntro(companion.id, motivation);
+        final crisis = motivation != null && gittyIsCrisisReason(motivation);
         final cost = _costs[habit.key] ?? 0.0;
         final totalSaved =
             elapsed.isNegative ? 0.0 : elapsed.inMinutes / 1440 * cost;
@@ -390,18 +412,43 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                   if (!_expanded) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Tippen für Wissensimpuls und Tagesmission',
+                      motivation != null
+                          ? 'Tippen für deinen Grund und die Tagesmission'
+                          : 'Tippen für Wissensimpuls und Tagesmission',
                       style: theme.textTheme.labelMedium?.copyWith(color: on),
                     ),
                   ],
                   if (_expanded) ...[
                     const SizedBox(height: 16),
-                    if (dayContent == null)
+                    if (motivation != null) ...[
+                      const _Title(
+                        icon: Icons.favorite_outline,
+                        label: 'DEIN GRUND',
+                      ),
+                      const SizedBox(height: 8),
+                      if (intro != null) ...[
+                        Text(
+                          intro,
+                          style: theme.textTheme.labelLarge?.copyWith(color: on),
+                        ),
+                        const SizedBox(height: 4),
+                      ],
                       Text(
-                        'Für diese Gewohnheit oder diesen Tag folgen die Inhalte in der nächsten Etappe.',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: on),
-                      )
-                    else ...[
+                        '„$motivation“',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: on,
+                          fontWeight: FontWeight.w700,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      if (crisis) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          gittyCrisisHint,
+                          style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                        ),
+                      ],
+                    ] else if (dayContent != null) ...[
                       const _Title(
                         icon: Icons.science_outlined,
                         label: 'WISSENSIMPULS',
@@ -424,6 +471,12 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                         dayContent.source,
                         style: theme.textTheme.labelMedium?.copyWith(color: on),
                       ),
+                    ] else
+                      Text(
+                        'Für diese Gewohnheit oder diesen Tag folgen die Inhalte in der nächsten Etappe.',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                      ),
+                    if (dayContent != null) ...[
                       const Divider(height: 28),
                       const _Title(
                         icon: Icons.flag_outlined,
@@ -435,7 +488,17 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                         style: theme.textTheme.bodyLarge?.copyWith(color: on),
                       ),
                     ],
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: _openMotivations,
+                      icon: const Icon(Icons.edit_note),
+                      label: Text(
+                        _reasons.isEmpty
+                            ? 'Eigene Gründe eintragen'
+                            : 'Meine Gründe bearbeiten',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Icon(Icons.stars_rounded, color: on),
