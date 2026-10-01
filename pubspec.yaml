@@ -51,6 +51,7 @@ flutter:
   assets:
     - assets/
     - assets/changelogs/
+    - assets/gitty/
 msix_config:
   msstore_appId: 9PKVZWDG3FGC
   display_name: Quitter - Addiction recovery tracker
