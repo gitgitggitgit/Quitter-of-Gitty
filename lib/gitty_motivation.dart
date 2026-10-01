@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quitter/comic_style.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const gittyMotivationKey = 'gitty_motivations';
@@ -84,6 +85,8 @@ class _GittyMotivationPageState extends State<GittyMotivationPage> {
   final TextEditingController _controller = TextEditingController();
   List<String> _mine = [];
 
+  static const _suggestionColors = [comicYellow, comicBlue, comicPink];
+
   @override
   void initState() {
     super.initState();
@@ -121,19 +124,42 @@ class _GittyMotivationPageState extends State<GittyMotivationPage> {
     await _persist();
   }
 
+  OutlineInputBorder _inkBorder() => OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: comicInk, width: 3),
+      );
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final enough = _mine.length >= gittyMinReasons;
     final suggestions =
         gittyStarterMotivations.where((s) => !_mine.contains(s)).toList();
+    const inkText = TextStyle(
+      color: comicInk,
+      fontWeight: FontWeight.w600,
+      fontSize: 15,
+    );
+    final headline = theme.textTheme.labelLarge?.copyWith(
+      color: comicInk,
+      fontWeight: FontWeight.w900,
+      letterSpacing: 0.8,
+    );
 
     return PopScope(
       canPop: !widget.mandatory || enough,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Meine Gründe'),
+          title: const Text(
+            'Meine Gründe',
+            style: TextStyle(color: comicInk, fontWeight: FontWeight.w900),
+          ),
+          backgroundColor: comicYellow,
+          foregroundColor: comicInk,
           automaticallyImplyLeading: !widget.mandatory || enough,
+          shape: const Border(
+            bottom: BorderSide(color: comicInk, width: 3),
+          ),
         ),
         bottomNavigationBar: widget.mandatory
             ? SafeArea(
@@ -141,10 +167,22 @@ class _GittyMotivationPageState extends State<GittyMotivationPage> {
                   padding: const EdgeInsets.all(16),
                   child: FilledButton(
                     onPressed: enough ? () => Navigator.of(context).pop() : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: comicRed,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.white,
+                      disabledForegroundColor: comicInk,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        side: const BorderSide(color: comicInk, width: 3),
+                      ),
+                    ),
                     child: Text(
                       enough
                           ? 'Weiter'
                           : 'Noch ${gittyMinReasons - _mine.length} Gründe nötig',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
                 ),
@@ -153,22 +191,33 @@ class _GittyMotivationPageState extends State<GittyMotivationPage> {
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Text(
-              'Wähle mindestens $gittyMinReasons Gründe aus oder schreib eigene. Dein Begleiter erinnert dich an manchen Tagen daran. Sie bleiben nur auf diesem Gerät.',
-              style: theme.textTheme.bodyMedium,
+            ComicBubble(
+              child: Text(
+                'Wähle mindestens $gittyMinReasons Gründe aus oder schreib eigene. Dein Begleiter erinnert dich an manchen Tagen daran. Sie bleiben nur auf diesem Gerät.',
+                style: inkText,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             TextField(
               controller: _controller,
               minLines: 1,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
               onSubmitted: _add,
+              style: inkText,
               decoration: InputDecoration(
                 labelText: 'Eigenen Grund eintragen',
-                border: const OutlineInputBorder(),
+                labelStyle: const TextStyle(
+                  color: comicInk,
+                  fontWeight: FontWeight.w700,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                border: _inkBorder(),
+                enabledBorder: _inkBorder(),
+                focusedBorder: _inkBorder(),
                 suffixIcon: IconButton(
-                  icon: const Icon(Icons.add),
+                  icon: const Icon(Icons.add_circle, color: comicRed),
                   onPressed: () => _add(_controller.text),
                 ),
               ),
@@ -176,46 +225,49 @@ class _GittyMotivationPageState extends State<GittyMotivationPage> {
             const SizedBox(height: 24),
             Text(
               'DEINE GRÜNDE (${_mine.length}/$gittyMinReasons)',
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
+              style: headline,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             if (_mine.isEmpty)
               Text(
                 'Noch keine. Tippe unten auf einen Vorschlag oder schreibe deinen eigenen.',
-                style: theme.textTheme.bodyMedium,
+                style: inkText,
               ),
             for (final m in _mine)
-              Card(
-                elevation: 0,
-                color: theme.colorScheme.primaryContainer,
-                child: ListTile(
-                  title: Text(m),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => _remove(m),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ComicPanel(
+                  color: comicMint,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(m, style: inkText)),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: comicInk),
+                        onPressed: () => _remove(m),
+                      ),
+                    ],
                   ),
                 ),
               ),
             const SizedBox(height: 24),
-            Text(
-              'VORSCHLÄGE',
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 8),
-            for (final s in suggestions)
-              Card(
-                elevation: 0,
-                color: theme.colorScheme.surfaceContainerHigh,
-                child: ListTile(
-                  title: Text(s),
-                  trailing: const Icon(Icons.add_circle_outline),
-                  onTap: () => _add(s),
+            Text('VORSCHLÄGE', style: headline),
+            const SizedBox(height: 10),
+            for (var i = 0; i < suggestions.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: ComicPanel(
+                  color: _suggestionColors[i % _suggestionColors.length],
+                  shadowColor: comicInk,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+                  onTap: () => _add(suggestions[i]),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(suggestions[i], style: inkText)),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.add_circle_outline, color: comicInk),
+                    ],
+                  ),
                 ),
               ),
           ],
