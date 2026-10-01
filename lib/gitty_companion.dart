@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:quitter/comic_style.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class GittyCompanion {
@@ -64,6 +65,8 @@ class GittyCompanionPage extends StatefulWidget {
 }
 
 class _GittyCompanionPageState extends State<GittyCompanionPage> {
+  static const _palette = [comicPink, comicMint, comicYellow, comicBlue];
+
   String? _selected;
   bool _saving = false;
 
@@ -98,8 +101,8 @@ class _GittyCompanionPageState extends State<GittyCompanionPage> {
                 const SizedBox(height: 8),
                 Text(
                   'Wer soll dich begleiten?',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -112,15 +115,18 @@ class _GittyCompanionPageState extends State<GittyCompanionPage> {
                 Expanded(
                   child: GridView.count(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: 0.6,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                    childAspectRatio: 0.58,
                     children: [
-                      for (final c in gittyCompanions)
+                      for (var i = 0; i < gittyCompanions.length; i++)
                         _CompanionCard(
-                          companion: c,
-                          selected: c.id == _selected,
-                          onTap: () => setState(() => _selected = c.id),
+                          companion: gittyCompanions[i],
+                          color: _palette[i % _palette.length],
+                          selected: gittyCompanions[i].id == _selected,
+                          onTap: () => setState(
+                            () => _selected = gittyCompanions[i].id,
+                          ),
                         ),
                     ],
                   ),
@@ -147,62 +153,56 @@ class _GittyCompanionPageState extends State<GittyCompanionPage> {
 class _CompanionCard extends StatelessWidget {
   const _CompanionCard({
     required this.companion,
+    required this.color,
     required this.selected,
     required this.onTap,
   });
 
   final GittyCompanion companion;
+  final Color color;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 0,
-      color: selected ? scheme.primaryContainer : scheme.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(
-          color: selected ? scheme.primary : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Center(
-                  child: Image.asset(
-                    companion.asset,
-                    cacheWidth: 400,
-                    fit: BoxFit.contain,
-                  ),
+    return ComicPanel(
+      color: color,
+      shadowColor: selected ? comicRed : const Color(0xFF3A3A46),
+      padding: const EdgeInsets.all(10),
+      onTap: onTap,
+      splat: selected,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  companion.asset,
+                  cacheWidth: 400,
+                  fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                companion.name,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                companion.story,
-                maxLines: 4,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodySmall,
-              ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            companion.name,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: comicInk,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            companion.story,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall?.copyWith(color: comicInk),
+          ),
+        ],
       ),
     );
   }

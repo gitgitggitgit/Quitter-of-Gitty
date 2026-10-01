@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quitter/addiction_provider.dart';
+import 'package:quitter/comic_style.dart';
 import 'package:quitter/gitty_companion.dart';
 import 'package:quitter/gitty_content.dart';
 import 'package:quitter/gitty_motivation.dart';
@@ -213,8 +214,7 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final on = scheme.onPrimaryContainer;
+    const on = comicInk;
     final l10n = AppLocalizations.of(context)!;
     final companion = gittyCompanionById(_companionId);
 
@@ -223,29 +223,26 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
         final habits = _habits(addictions, l10n);
 
         if (habits.isEmpty) {
-          return Card(
-            elevation: 0,
-            color: scheme.primaryContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Gitty Quit',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      color: on,
-                      fontWeight: FontWeight.w800,
-                    ),
+          return ComicPanel(
+            color: comicMint,
+            splat: true,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Gitty Quit',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: on,
+                    fontWeight: FontWeight.w900,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Lege mit dem Plus-Button unten eine Gewohnheit an. '
-                    'Dort wählst du auch dein Startdatum.',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: on),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Lege mit dem Plus-Button unten eine Gewohnheit an. '
+                  'Dort wählst du auch dein Startdatum.',
+                  style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                ),
+              ],
             ),
           );
         }
@@ -271,6 +268,7 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
         final needMore = _reasons.length < gittyMinReasons;
         final reasonsLabel =
             'Mindestens $gittyMinReasons Gründe wählen (${_reasons.length}/$gittyMinReasons)';
+        final inkButton = TextButton.styleFrom(foregroundColor: comicInk);
         int? nextMilestone;
         for (final m in _milestones) {
           if (m > days) {
@@ -279,262 +277,273 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
           }
         }
 
-        return Card(
-          clipBehavior: Clip.antiAlias,
-          elevation: 0,
-          color: scheme.primaryContainer,
-          child: InkWell(
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        return ComicPanel(
+          color: comicMint,
+          splat: true,
+          onTap: () => setState(() => _expanded = !_expanded),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      if (companion != null) ...[
-                        GestureDetector(
-                          onTap: () => _openPicker(first: false),
-                          child: CircleAvatar(
-                            radius: 28,
-                            backgroundColor: scheme.surface.withAlpha(140),
-                            child: ClipOval(
-                              child: Image.asset(
-                                companion.asset,
-                                width: 56,
-                                height: 56,
-                                fit: BoxFit.cover,
-                                alignment: Alignment.topCenter,
-                                cacheWidth: 200,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Gitty Quit',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                color: on,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            if (companion != null)
-                              Text(
-                                '${companion.name} begleitet dich',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: on,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        _expanded ? Icons.expand_less : Icons.expand_more,
-                        color: on,
-                      ),
-                    ],
-                  ),
                   if (companion != null) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      gittyVoiceLine(
-                        companionId: companion.id,
-                        dayNumber: dayNumber,
-                        saved: cost == 0 ? '' : _euro(totalSaved),
-                      ),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: on,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ],
-                  if (habits.length > 1) ...[
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      children: [
-                        for (final h in habits)
-                          ChoiceChip(
-                            label: Text(h.title),
-                            selected: h.key == habit.key,
-                            onSelected: (_) =>
-                                setState(() => _selectedKey = h.key),
+                    GestureDetector(
+                      onTap: () => _openPicker(first: false),
+                      child: Container(
+                        width: 62,
+                        height: 62,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(color: comicInk, width: 3),
+                        ),
+                        child: ClipOval(
+                          child: Image.asset(
+                            companion.asset,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.topCenter,
+                            cacheWidth: 200,
                           ),
-                      ],
+                        ),
+                      ),
                     ),
+                    const SizedBox(width: 12),
                   ],
-                  const SizedBox(height: 8),
-                  Text(
-                    '${habit.title} · Tag $dayNumber von 90 · ${_level(points)}',
-                    style: theme.textTheme.bodyMedium?.copyWith(color: on),
-                  ),
-                  const SizedBox(height: 12),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(999),
-                    child: LinearProgressIndicator(
-                      value: progress,
-                      minHeight: 8,
-                      backgroundColor: scheme.surface.withAlpha(140),
-                      color: scheme.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (cost == 0)
-                    TextButton.icon(
-                      onPressed: () => _editCost(habit),
-                      icon: const Icon(Icons.euro),
-                      label: const Text('Kosten pro Tag eingeben'),
-                    )
-                  else ...[
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Kosten pro Tag',
-                          style:
-                              theme.textTheme.bodyMedium?.copyWith(color: on),
+                          'Gitty Quit',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: on,
+                            fontWeight: FontWeight.w900,
+                          ),
                         ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _euro(cost),
-                              style: theme.textTheme.titleSmall?.copyWith(
-                                color: on,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            IconButton(
-                              visualDensity: VisualDensity.compact,
-                              onPressed: () => _editCost(habit),
-                              icon: Icon(Icons.edit, size: 18, color: on),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    _Row(label: 'Insgesamt gespart', value: _euro(totalSaved)),
-                  ],
-                  if (needMore)
-                    TextButton.icon(
-                      onPressed: () => _openMotivations(),
-                      icon: const Icon(Icons.favorite_outline),
-                      label: Text(reasonsLabel),
-                    ),
-                  if (!_expanded) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      motivation != null
-                          ? 'Tippen für deinen Grund und die Tagesmission'
-                          : 'Tippen für Wissensimpuls und Tagesmission',
-                      style: theme.textTheme.labelMedium?.copyWith(color: on),
-                    ),
-                  ],
-                  if (_expanded) ...[
-                    const SizedBox(height: 16),
-                    if (motivation != null) ...[
-                      const _Title(
-                        icon: Icons.favorite_outline,
-                        label: 'DEIN GRUND',
-                      ),
-                      const SizedBox(height: 8),
-                      if (intro != null) ...[
-                        Text(
-                          intro,
-                          style: theme.textTheme.labelLarge?.copyWith(color: on),
-                        ),
-                        const SizedBox(height: 4),
-                      ],
-                      Text(
-                        '„$motivation“',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: on,
-                          fontWeight: FontWeight.w700,
-                          fontStyle: FontStyle.italic,
-                        ),
-                      ),
-                      if (crisis) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          gittyCrisisHint,
-                          style: theme.textTheme.bodyMedium?.copyWith(color: on),
-                        ),
-                      ],
-                    ] else if (dayContent != null) ...[
-                      const _Title(
-                        icon: Icons.science_outlined,
-                        label: 'WISSENSIMPULS',
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        dayContent.fact,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: on,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        dayContent.explanation,
-                        style: theme.textTheme.bodyMedium?.copyWith(color: on),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        dayContent.source,
-                        style: theme.textTheme.labelMedium?.copyWith(color: on),
-                      ),
-                    ] else
-                      Text(
-                        'Für diese Gewohnheit oder diesen Tag folgen die Inhalte in der nächsten Etappe.',
-                        style: theme.textTheme.bodyMedium?.copyWith(color: on),
-                      ),
-                    if (dayContent != null) ...[
-                      const Divider(height: 28),
-                      const _Title(
-                        icon: Icons.flag_outlined,
-                        label: 'TAGESMISSION',
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        dayContent.mission,
-                        style: theme.textTheme.bodyLarge?.copyWith(color: on),
-                      ),
-                    ],
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: () => _openMotivations(),
-                      icon: const Icon(Icons.edit_note),
-                      label: Text(
-                        needMore ? reasonsLabel : 'Meine Gründe bearbeiten',
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.stars_rounded, color: on),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Gitty-Punkte: $points\n'
-                            '${nextMilestone == null ? 'Alle Meilensteine geschafft' : 'Nächster Erfolg: $nextMilestone Tage · noch ${nextMilestone - days} Tage'}',
-                            style: theme.textTheme.bodyMedium?.copyWith(
+                        if (companion != null)
+                          Text(
+                            '${companion.name} begleitet dich',
+                            style: theme.textTheme.labelMedium?.copyWith(
                               color: on,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ),
                       ],
                     ),
-                  ],
+                  ),
+                  const SizedBox(width: 28),
                 ],
               ),
-            ),
+              if (companion != null)
+                ComicBubble(
+                  child: Text(
+                    gittyVoiceLine(
+                      companionId: companion.id,
+                      dayNumber: dayNumber,
+                      saved: cost == 0 ? '' : _euro(totalSaved),
+                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: on,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              if (habits.length > 1) ...[
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    for (final h in habits)
+                      ChoiceChip(
+                        label: Text(h.title),
+                        selected: h.key == habit.key,
+                        selectedColor: comicYellow,
+                        backgroundColor: Colors.white,
+                        side: const BorderSide(color: comicInk, width: 2),
+                        labelStyle: const TextStyle(
+                          color: comicInk,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        onSelected: (_) =>
+                            setState(() => _selectedKey = h.key),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 10),
+              Text(
+                '${habit.title} · Tag $dayNumber von 90 · ${_level(points)}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: on,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: comicInk, width: 2.5),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 12,
+                    backgroundColor: Colors.white,
+                    color: comicRed,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              if (cost == 0)
+                TextButton.icon(
+                  style: inkButton,
+                  onPressed: () => _editCost(habit),
+                  icon: const Icon(Icons.euro),
+                  label: const Text('Kosten pro Tag eingeben'),
+                )
+              else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Kosten pro Tag',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _euro(cost),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            color: on,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        IconButton(
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => _editCost(habit),
+                          icon: const Icon(Icons.edit, size: 18, color: on),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                _Row(label: 'Insgesamt gespart', value: _euro(totalSaved)),
+              ],
+              if (needMore)
+                TextButton.icon(
+                  style: inkButton,
+                  onPressed: () => _openMotivations(),
+                  icon: const Icon(Icons.favorite_outline),
+                  label: Text(reasonsLabel),
+                ),
+              if (!_expanded) ...[
+                const SizedBox(height: 8),
+                Text(
+                  motivation != null
+                      ? 'Tippen für deinen Grund und die Tagesmission'
+                      : 'Tippen für Wissensimpuls und Tagesmission',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: on,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+              if (_expanded) ...[
+                const SizedBox(height: 16),
+                if (motivation != null) ...[
+                  const _Title(icon: Icons.favorite_outline, label: 'DEIN GRUND'),
+                  const SizedBox(height: 8),
+                  if (intro != null) ...[
+                    Text(
+                      intro,
+                      style: theme.textTheme.labelLarge?.copyWith(color: on),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                  Text(
+                    '„$motivation“',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: on,
+                      fontWeight: FontWeight.w800,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  if (crisis) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      gittyCrisisHint,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                    ),
+                  ],
+                ] else if (dayContent != null) ...[
+                  const _Title(
+                    icon: Icons.science_outlined,
+                    label: 'WISSENSIMPULS',
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    dayContent.fact,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: on,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    dayContent.explanation,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    dayContent.source,
+                    style: theme.textTheme.labelMedium?.copyWith(color: on),
+                  ),
+                ] else
+                  Text(
+                    'Für diese Gewohnheit oder diesen Tag folgen die Inhalte in der nächsten Etappe.',
+                    style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                  ),
+                if (dayContent != null) ...[
+                  const Divider(height: 28, color: comicInk, thickness: 2),
+                  const _Title(icon: Icons.flag_outlined, label: 'TAGESMISSION'),
+                  const SizedBox(height: 8),
+                  Text(
+                    dayContent.mission,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: on,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  style: inkButton,
+                  onPressed: () => _openMotivations(),
+                  icon: const Icon(Icons.edit_note),
+                  label: Text(needMore ? reasonsLabel : 'Meine Gründe bearbeiten'),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.stars_rounded, color: on),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Gitty-Punkte: $points\n'
+                        '${nextMilestone == null ? 'Alle Meilensteine geschafft' : 'Nächster Erfolg: $nextMilestone Tage · noch ${nextMilestone - days} Tage'}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: on,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
         );
       },
@@ -551,16 +560,18 @@ class _Row extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final on = theme.colorScheme.onPrimaryContainer;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: on)),
+        Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(color: comicInk),
+        ),
         Text(
           value,
           style: theme.textTheme.titleSmall?.copyWith(
-            color: on,
-            fontWeight: FontWeight.w800,
+            color: comicInk,
+            fontWeight: FontWeight.w900,
           ),
         ),
       ],
@@ -577,17 +588,16 @@ class _Title extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final on = theme.colorScheme.onPrimaryContainer;
     return Row(
       children: [
-        Icon(icon, size: 18, color: on),
+        Icon(icon, size: 18, color: comicInk),
         const SizedBox(width: 8),
         Expanded(
           child: Text(
             label,
             style: theme.textTheme.labelLarge?.copyWith(
-              color: on,
-              fontWeight: FontWeight.w800,
+              color: comicInk,
+              fontWeight: FontWeight.w900,
               letterSpacing: 0.5,
             ),
           ),
