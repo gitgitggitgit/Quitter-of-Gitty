@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const gittyMotivationKey = 'gitty_motivations';
+const gittyMinReasons = 5;
 
 const gittyCrisisHint =
     'Wenn es dir gerade nicht gut geht: Telefonseelsorge 0800 111 0 111 (kostenlos, rund um die Uhr) oder Notruf 112.';
@@ -71,7 +72,9 @@ String? gittyMotivationIntro(String companionId, String reason) {
 }
 
 class GittyMotivationPage extends StatefulWidget {
-  const GittyMotivationPage({super.key});
+  const GittyMotivationPage({super.key, this.mandatory = false});
+
+  final bool mandatory;
 
   @override
   State<GittyMotivationPage> createState() => _GittyMotivationPageState();
@@ -121,80 +124,102 @@ class _GittyMotivationPageState extends State<GittyMotivationPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final enough = _mine.length >= gittyMinReasons;
     final suggestions =
         gittyStarterMotivations.where((s) => !_mine.contains(s)).toList();
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Meine Gründe')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            'Das sind deine Gründe. Dein Begleiter erinnert dich an manchen Tagen daran. Sie bleiben nur auf diesem Gerät.',
-            style: theme.textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _controller,
-            minLines: 1,
-            maxLines: 4,
-            textCapitalization: TextCapitalization.sentences,
-            onSubmitted: _add,
-            decoration: InputDecoration(
-              labelText: 'Eigenen Grund eintragen',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.add),
-                onPressed: () => _add(_controller.text),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'DEINE GRÜNDE (${_mine.length})',
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (_mine.isEmpty)
+    return PopScope(
+      canPop: !widget.mandatory || enough,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Meine Gründe'),
+          automaticallyImplyLeading: !widget.mandatory || enough,
+        ),
+        bottomNavigationBar: widget.mandatory
+            ? SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: FilledButton(
+                    onPressed: enough ? () => Navigator.of(context).pop() : null,
+                    child: Text(
+                      enough
+                          ? 'Weiter'
+                          : 'Noch ${gittyMinReasons - _mine.length} Gründe nötig',
+                    ),
+                  ),
+                ),
+              )
+            : null,
+        body: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
             Text(
-              'Noch keine. Tippe unten auf einen Vorschlag oder schreibe deinen eigenen.',
+              'Wähle mindestens $gittyMinReasons Gründe aus oder schreib eigene. Dein Begleiter erinnert dich an manchen Tagen daran. Sie bleiben nur auf diesem Gerät.',
               style: theme.textTheme.bodyMedium,
             ),
-          for (final m in _mine)
-            Card(
-              elevation: 0,
-              color: theme.colorScheme.primaryContainer,
-              child: ListTile(
-                title: Text(m),
-                trailing: IconButton(
-                  icon: const Icon(Icons.delete_outline),
-                  onPressed: () => _remove(m),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              minLines: 1,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              onSubmitted: _add,
+              decoration: InputDecoration(
+                labelText: 'Eigenen Grund eintragen',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.add),
+                  onPressed: () => _add(_controller.text),
                 ),
               ),
             ),
-          const SizedBox(height: 24),
-          Text(
-            'VORSCHLÄGE',
-            style: theme.textTheme.labelLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          for (final s in suggestions)
-            Card(
-              elevation: 0,
-              color: theme.colorScheme.surfaceContainerHigh,
-              child: ListTile(
-                title: Text(s),
-                trailing: const Icon(Icons.add_circle_outline),
-                onTap: () => _add(s),
+            const SizedBox(height: 24),
+            Text(
+              'DEINE GRÜNDE (${_mine.length}/$gittyMinReasons)',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
               ),
             ),
-        ],
+            const SizedBox(height: 8),
+            if (_mine.isEmpty)
+              Text(
+                'Noch keine. Tippe unten auf einen Vorschlag oder schreibe deinen eigenen.',
+                style: theme.textTheme.bodyMedium,
+              ),
+            for (final m in _mine)
+              Card(
+                elevation: 0,
+                color: theme.colorScheme.primaryContainer,
+                child: ListTile(
+                  title: Text(m),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: () => _remove(m),
+                  ),
+                ),
+              ),
+            const SizedBox(height: 24),
+            Text(
+              'VORSCHLÄGE',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final s in suggestions)
+              Card(
+                elevation: 0,
+                color: theme.colorScheme.surfaceContainerHigh,
+                child: ListTile(
+                  title: Text(s),
+                  trailing: const Icon(Icons.add_circle_outline),
+                  onTap: () => _add(s),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

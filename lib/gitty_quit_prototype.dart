@@ -60,7 +60,11 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
       _companionId = companion;
       _reasons = List<String>.from(reasons);
     });
-    if (companion == null) _openPicker(first: true);
+    if (companion == null) {
+      _openPicker(first: true);
+    } else if (reasons.length < gittyMinReasons) {
+      _openMotivations(mandatory: true);
+    }
   }
 
   Future<void> _openPicker({required bool first}) async {
@@ -75,11 +79,16 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
     );
     _pickerOpen = false;
     if (id != null && mounted) setState(() => _companionId = id);
+    if (id != null && mounted && _reasons.length < gittyMinReasons) {
+      await _openMotivations(mandatory: true);
+    }
   }
 
-  Future<void> _openMotivations() async {
+  Future<void> _openMotivations({bool mandatory = false}) async {
     await Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const GittyMotivationPage()),
+      MaterialPageRoute(
+        builder: (_) => GittyMotivationPage(mandatory: mandatory),
+      ),
     );
     final prefs = await SharedPreferences.getInstance();
     if (!mounted) return;
@@ -259,6 +268,9 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
             elapsed.isNegative ? 0.0 : elapsed.inMinutes / 1440 * cost;
         final points = days * 10;
         final progress = (dayNumber / 90).clamp(0.0, 1.0).toDouble();
+        final needMore = _reasons.length < gittyMinReasons;
+        final reasonsLabel =
+            'Mindestens $gittyMinReasons Gründe wählen (${_reasons.length}/$gittyMinReasons)';
         int? nextMilestone;
         for (final m in _milestones) {
           if (m > days) {
@@ -409,6 +421,12 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                     ),
                     _Row(label: 'Insgesamt gespart', value: _euro(totalSaved)),
                   ],
+                  if (needMore)
+                    TextButton.icon(
+                      onPressed: () => _openMotivations(),
+                      icon: const Icon(Icons.favorite_outline),
+                      label: Text(reasonsLabel),
+                    ),
                   if (!_expanded) ...[
                     const SizedBox(height: 8),
                     Text(
@@ -490,12 +508,10 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                     ],
                     const SizedBox(height: 12),
                     TextButton.icon(
-                      onPressed: _openMotivations,
+                      onPressed: () => _openMotivations(),
                       icon: const Icon(Icons.edit_note),
                       label: Text(
-                        _reasons.isEmpty
-                            ? 'Eigene Gründe eintragen'
-                            : 'Meine Gründe bearbeiten',
+                        needMore ? reasonsLabel : 'Meine Gründe bearbeiten',
                       ),
                     ),
                     const SizedBox(height: 8),
