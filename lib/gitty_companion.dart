@@ -5,45 +5,43 @@ class GittyCompanion {
   const GittyCompanion({
     required this.id,
     required this.name,
-    required this.role,
-    required this.description,
+    required this.story,
     required this.asset,
   });
 
   final String id;
   final String name;
-  final String role;
-  final String description;
+  final String story;
   final String asset;
 }
 
 const gittyCompanions = [
   GittyCompanion(
     id: 'taube',
-    name: 'Taube',
-    role: 'Verpeilter DJ',
-    description: 'Trocken, beobachtet alles und liefert dir die klaren Fakten.',
+    name: 'Dieter',
+    story:
+        'Hat jahrelang auf Dächern aufgelegt und dabei den Takt verloren, aber nie den Überblick.',
     asset: 'assets/gitty/taube.png',
   ),
   GittyCompanion(
     id: 'ratte',
-    name: 'Ratte Gitty',
-    role: 'Straßenschlau',
-    description: 'Zäh, sarkastisch, kennt jeden Trick und knackt jede Kette.',
+    name: 'Gitty',
+    story:
+        'Wuchs zwischen Mülltonnen auf und weiß, dass hinter jeder Kette nur ein Schloss steckt.',
     asset: 'assets/gitty/ratte.png',
   ),
   GittyCompanion(
     id: 'fuchs',
-    name: 'Fuchs',
-    role: 'Geheimnisvoll',
-    description: 'Ruhig, direkt und hat selbst schon alles gesehen.',
+    name: 'Ferdinand',
+    story:
+        'Hat in dunklen Gassen mehr gesehen, als er je erzählen wird, und steckt sein Geld jetzt lieber weg.',
     asset: 'assets/gitty/fuchs.png',
   ),
   GittyCompanion(
     id: 'waschbaer',
-    name: 'Waschbär',
-    role: 'Chaotisch und gutmütig',
-    description: 'Leuchtet dir den Weg und sammelt deine Erfolge.',
+    name: 'Rocco',
+    story:
+        'Sammelt, was andere wegwerfen, und leuchtet in die dunkelsten Ecken, bis wieder Licht da ist.',
     asset: 'assets/gitty/waschbaer.png',
   ),
 ];
@@ -195,10 +193,9 @@ class _CompanionCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              Text(companion.role, style: theme.textTheme.labelMedium),
               const SizedBox(height: 4),
               Text(
-                companion.description,
+                companion.story,
                 maxLines: 4,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall,
