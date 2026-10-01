@@ -10,6 +10,7 @@ import 'package:quitter/tca_page.dart';
 import 'package:quitter/cocaine_page.dart';
 import 'package:quitter/gabapentinoids_page.dart';
 import 'package:quitter/ghb_page.dart';
+import 'package:quitter/gitty_quit_prototype.dart';
 import 'package:quitter/inhalants_page.dart';
 import 'package:quitter/ketamine_page.dart';
 import 'package:quitter/kratom_page.dart';
@@ -601,6 +602,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ),
                   ],
                 ),
+              ),
+            ),
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                child: GittyQuitPrototype(),
               ),
             ),
             SliverPadding(
