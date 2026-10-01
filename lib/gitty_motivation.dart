@@ -9,7 +9,6 @@ const gittyCrisisHint =
 
 const gittyStarterMotivations = <String>[
   'Ich will mein Leben nachhaltig verändern.',
-  'Ich will mich nicht umbringen.',
   'Ich will einen gesunden Darm.',
   'Sober sein ist viel krasser als eine peinliche Abhängigkeit zu haben.',
   'Kein Bock, andere durch Stimmungsschwankungen und Reizbarkeit zu verletzen.',
@@ -24,6 +23,7 @@ const gittyStarterMotivations = <String>[
   'Ich will gesund aussehen und nicht verbraucht wirken. Auf jedem Hochzeitsfoto sehe ich fertig aus, während ich in dem Moment denke, ich wäre der Heißeste im Raum.',
   'Ich will mein Leben nicht verschwenden.',
   'Ich will nicht weiter in die von Oligarchen gewollte Verdummung rutschen.',
+  'Ich will mich nicht umbringen.',
   'Klaren Kopf fürs Business.',
   'Führerschein nicht verlieren.',
   'Fit fürs Boxen werden.',
