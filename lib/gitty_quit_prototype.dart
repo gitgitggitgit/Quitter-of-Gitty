@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quitter/addiction_provider.dart';
+import 'package:quitter/gitty_companion.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -23,19 +24,22 @@ class GittyQuitPrototype extends StatefulWidget {
 
 class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
   static const _prefix = 'gitty_cost_';
+  static const _companionKey = 'gitty_companion';
   static const _milestones = [1, 3, 7, 14, 30, 60, 90, 180, 365];
 
   final Map<String, double> _costs = {};
   String? _selectedKey;
+  String? _companionId;
+  bool _pickerOpen = false;
   bool _expanded = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCosts();
+    _loadPrefs();
   }
 
-  Future<void> _loadCosts() async {
+  Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final loaded = <String, double>{};
     for (final k in prefs.getKeys()) {
@@ -44,12 +48,29 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
         if (v != null) loaded[k.substring(_prefix.length)] = v;
       }
     }
+    final companion = prefs.getString(_companionKey);
     if (!mounted) return;
     setState(() {
       _costs
         ..clear()
         ..addAll(loaded);
+      _companionId = companion;
     });
+    if (companion == null) _openPicker(first: true);
+  }
+
+  Future<void> _openPicker({required bool first}) async {
+    if (_pickerOpen) return;
+    _pickerOpen = true;
+    final id = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) =>
+            GittyCompanionPage(initialId: _companionId, firstTime: first),
+      ),
+    );
+    _pickerOpen = false;
+    if (id != null && mounted) setState(() => _companionId = id);
   }
 
   Future<void> _saveCost(String key, double value) async {
@@ -169,6 +190,7 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
     final scheme = theme.colorScheme;
     final on = scheme.onPrimaryContainer;
     final l10n = AppLocalizations.of(context)!;
+    final companion = gittyCompanionById(_companionId);
 
     return Consumer<AddictionProvider>(
       builder: (context, addictions, child) {
@@ -236,13 +258,45 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                 children: [
                   Row(
                     children: [
-                      Expanded(
-                        child: Text(
-                          'Gitty Quit',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: on,
-                            fontWeight: FontWeight.w800,
+                      if (companion != null) ...[
+                        GestureDetector(
+                          onTap: () => _openPicker(first: false),
+                          child: CircleAvatar(
+                            radius: 28,
+                            backgroundColor: scheme.surface.withAlpha(140),
+                            child: ClipOval(
+                              child: Image.asset(
+                                companion.asset,
+                                width: 56,
+                                height: 56,
+                                fit: BoxFit.cover,
+                                alignment: Alignment.topCenter,
+                                cacheWidth: 200,
+                              ),
+                            ),
                           ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Gitty Quit',
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                color: on,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            if (companion != null)
+                              Text(
+                                '${companion.name} begleitet dich',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: on,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
                       Icon(
