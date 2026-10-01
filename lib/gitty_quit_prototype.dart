@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:quitter/addiction_provider.dart';
 import 'package:quitter/gitty_companion.dart';
+import 'package:quitter/gitty_content.dart';
 import 'package:quitter/gitty_voice.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import 'gitty_quit_daily_content.dart';
 
 class _Habit {
   const _Habit(this.key, this.title, this.start);
@@ -229,10 +228,10 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
           (h) => h.key == _selectedKey,
           orElse: () => habits.first,
         );
-        final content = gittyQuitPrototypeContent;
         final elapsed = DateTime.now().difference(habit.start);
         final days = elapsed.isNegative ? 0 : elapsed.inDays;
         final dayNumber = days + 1;
+        final dayContent = gittyDayFor(habit.key, dayNumber);
         final cost = _costs[habit.key] ?? 0.0;
         final totalSaved =
             elapsed.isNegative ? 0.0 : elapsed.inMinutes / 1440 * cost;
@@ -397,51 +396,45 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                   ],
                   if (_expanded) ...[
                     const SizedBox(height: 16),
-                    const _Title(
-                      icon: Icons.science_outlined,
-                      label: 'WISSENSIMPULS',
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      content.fact,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: on,
-                        fontWeight: FontWeight.w700,
+                    if (dayContent == null)
+                      Text(
+                        'Für diese Gewohnheit oder diesen Tag folgen die Inhalte in der nächsten Etappe.',
+                        style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                      )
+                    else ...[
+                      const _Title(
+                        icon: Icons.science_outlined,
+                        label: 'WISSENSIMPULS',
                       ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      content.explanation,
-                      style: theme.textTheme.bodyMedium?.copyWith(color: on),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      content.source,
-                      style: theme.textTheme.labelMedium?.copyWith(color: on),
-                    ),
-                    const Divider(height: 28),
-                    const _Title(
-                      icon: Icons.favorite_outline,
-                      label: 'DEIN ANTRIEB',
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '„${content.motivation}“',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: on,
-                        fontStyle: FontStyle.italic,
+                      const SizedBox(height: 8),
+                      Text(
+                        dayContent.fact,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: on,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    const _Title(
-                      icon: Icons.flag_outlined,
-                      label: 'TAGESMISSION',
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      content.mission,
-                      style: theme.textTheme.bodyLarge?.copyWith(color: on),
-                    ),
+                      const SizedBox(height: 6),
+                      Text(
+                        dayContent.explanation,
+                        style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        dayContent.source,
+                        style: theme.textTheme.labelMedium?.copyWith(color: on),
+                      ),
+                      const Divider(height: 28),
+                      const _Title(
+                        icon: Icons.flag_outlined,
+                        label: 'TAGESMISSION',
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        dayContent.mission,
+                        style: theme.textTheme.bodyLarge?.copyWith(color: on),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Row(
                       children: [
