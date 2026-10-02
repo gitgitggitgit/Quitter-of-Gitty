@@ -27,10 +27,13 @@ class GittyQuitPrototype extends StatefulWidget {
 
 class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
   static const _prefix = 'gitty_cost_';
+  static const _timePrefix = 'gitty_time_';
   static const _companionKey = 'gitty_companion';
   static const _milestones = [1, 3, 7, 14, 30, 60, 90, 180, 365];
+  static const _green = Color(0xFF3FBF7F);
 
   final Map<String, double> _costs = {};
+  final Map<String, double> _times = {};
   List<String> _reasons = [];
   String? _selectedKey;
   String? _companionId;
@@ -46,10 +49,14 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
   Future<void> _loadPrefs() async {
     final prefs = await SharedPreferences.getInstance();
     final loaded = <String, double>{};
+    final loadedTimes = <String, double>{};
     for (final k in prefs.getKeys()) {
       if (k.startsWith(_prefix)) {
         final v = prefs.getDouble(k);
         if (v != null) loaded[k.substring(_prefix.length)] = v;
+      } else if (k.startsWith(_timePrefix)) {
+        final v = prefs.getDouble(k);
+        if (v != null) loadedTimes[k.substring(_timePrefix.length)] = v;
       }
     }
     final companion = prefs.getString(_companionKey);
@@ -59,6 +66,9 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
       _costs
         ..clear()
         ..addAll(loaded);
+      _times
+        ..clear()
+        ..addAll(loadedTimes);
       _companionId = companion;
       _reasons = List<String>.from(reasons);
     });
@@ -101,31 +111,57 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
     });
   }
 
-  Future<void> _saveCost(String key, double value) async {
+  Future<void> _saveSavings(String key, double cost, double minutes) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setDouble('$_prefix$key', value);
+    await prefs.setDouble('$_prefix$key', cost);
+    await prefs.setDouble('$_timePrefix$key', minutes);
     if (!mounted) return;
     setState(() {
-      _costs[key] = value;
+      _costs[key] = cost;
+      _times[key] = minutes;
     });
   }
 
-  Future<void> _editCost(_Habit habit) async {
-    final current = _costs[habit.key] ?? 0.0;
-    final controller = TextEditingController(
-      text: current == 0 ? '' : current.toStringAsFixed(2).replaceAll('.', ','),
+  Future<void> _editSavings(_Habit habit) async {
+    final cost = _costs[habit.key] ?? 0.0;
+    final minutes = _times[habit.key] ?? 0.0;
+    final costController = TextEditingController(
+      text: cost == 0 ? '' : cost.toStringAsFixed(2).replaceAll('.', ','),
     );
-    final result = await showDialog<double>(
+    final timeController = TextEditingController(
+      text: minutes == 0 ? '' : minutes.round().toString(),
+    );
+    final result = await showDialog<List<double>>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Kosten pro Tag: ${habit.title}'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Euro pro Tag',
-            suffixText: '€',
+        title: Text('Kosten und Zeit pro Tag: ${habit.title}'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: costController,
+                autofocus: true,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Euro pro Tag',
+                  suffixText: '€',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: timeController,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(
+                  labelText: 'Gesparte Zeit pro Tag',
+                  suffixText: 'Min',
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -135,18 +171,25 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
           ),
           FilledButton(
             onPressed: () {
-              final v = double.tryParse(
-                controller.text.trim().replaceAll(',', '.'),
-              );
-              Navigator.pop(ctx, v);
+              final c =
+                  double.tryParse(
+                    costController.text.trim().replaceAll(',', '.'),
+                  ) ??
+                  0.0;
+              final t =
+                  double.tryParse(
+                    timeController.text.trim().replaceAll(',', '.'),
+                  ) ??
+                  0.0;
+              Navigator.pop(ctx, [c, t]);
             },
             child: const Text('Speichern'),
           ),
         ],
       ),
     );
-    if (result != null && result >= 0) {
-      await _saveCost(habit.key, result);
+    if (result != null && result[0] >= 0 && result[1] >= 0) {
+      await _saveSavings(habit.key, result[0], result[1]);
     }
   }
 
@@ -203,6 +246,20 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
 
   static String _euro(double value) =>
       '${value.toStringAsFixed(2).replaceAll('.', ',')} €';
+
+  static String _dur(double minutes) {
+    final total = minutes.round();
+    if (total < 60) return '$total Min';
+    if (total < 1440) {
+      final h = total ~/ 60;
+      final m = total % 60;
+      return m == 0 ? '$h Std' : '$h Std $m Min';
+    }
+    final d = total ~/ 1440;
+    final h = (total % 1440) ~/ 60;
+    final dayLabel = d == 1 ? 'Tag' : 'Tage';
+    return h == 0 ? '$d $dayLabel' : '$d $dayLabel $h Std';
+  }
 
   static String _level(int points) {
     if (points < 100) return 'Level 1 — Startklar';
@@ -263,8 +320,16 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
             : gittyMotivationIntro(companion.id, motivation);
         final crisis = motivation != null && gittyIsCrisisReason(motivation);
         final cost = _costs[habit.key] ?? 0.0;
+        final minutesPerDay = _times[habit.key] ?? 0.0;
         final totalSaved =
             elapsed.isNegative ? 0.0 : elapsed.inMinutes / 1440 * cost;
+        final totalMinutes = elapsed.isNegative
+            ? 0.0
+            : elapsed.inMinutes / 1440 * minutesPerDay;
+        final perDay = [
+          if (cost > 0) _euro(cost),
+          if (minutesPerDay > 0) _dur(minutesPerDay),
+        ].join(' · ');
         final points = days * 10;
         final progress = (dayNumber / 90).clamp(0.0, 1.0).toDouble();
         final needMore = _reasons.length < gittyMinReasons;
@@ -304,6 +369,8 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                             fit: BoxFit.cover,
                             alignment: Alignment.topCenter,
                             cacheWidth: 200,
+                            errorBuilder: (context, error, stack) =>
+                                const Icon(Icons.pets, color: comicInk),
                           ),
                         ),
                       ),
@@ -397,40 +464,48 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                 ),
               ),
               const SizedBox(height: 12),
-              if (cost == 0)
+              if (cost == 0 && minutesPerDay == 0)
                 _ComicButton(
-                  icon: Icons.euro,
-                  label: 'Kosten pro Tag eingeben',
-                  onTap: () => _editCost(habit),
+                  icon: Icons.savings_outlined,
+                  label: 'Kosten und Zeit pro Tag eingeben',
+                  onTap: () => _editSavings(habit),
                 )
               else ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Kosten pro Tag',
+                      'Pro Tag',
                       style: theme.textTheme.bodyMedium?.copyWith(color: on),
                     ),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _euro(cost),
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            color: on,
-                            fontWeight: FontWeight.w900,
+                    Flexible(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              perDay,
+                              textAlign: TextAlign.end,
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: on,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
                           ),
-                        ),
-                        IconButton(
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => _editCost(habit),
-                          icon: const Icon(Icons.edit, size: 20, color: on),
-                        ),
-                      ],
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            onPressed: () => _editSavings(habit),
+                            icon: const Icon(Icons.edit, size: 20, color: on),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                _Row(label: 'Insgesamt gespart', value: _euro(totalSaved)),
+                if (cost > 0)
+                  _Row(label: 'Insgesamt gespart', value: _euro(totalSaved)),
+                if (minutesPerDay > 0)
+                  _Row(label: 'Zeit gespart', value: _dur(totalMinutes)),
               ],
               if (needMore) ...[
                 const SizedBox(height: 10),
@@ -555,8 +630,9 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                 ],
                 const SizedBox(height: 14),
                 _ComicButton(
-                  icon: Icons.edit_note,
+                  icon: needMore ? Icons.edit_note : Icons.check_circle_outline,
                   label: needMore ? reasonsLabel : 'Meine Gründe bearbeiten',
+                  color: needMore ? Colors.white : _green,
                   onTap: () => _openMotivations(),
                 ),
                 const SizedBox(height: 14),
