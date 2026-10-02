@@ -59,7 +59,10 @@ String? gittyMotivationFor(
 
 String? gittyMotivationIntro(String companionId, String reason) {
   if (gittyIsCrisisReason(reason)) return null;
-  switch (companionId) {
+  final base = companionId.endsWith('_w')
+      ? companionId.substring(0, companionId.length - 2)
+      : companionId;
+  switch (base) {
     case 'taube':
       return 'Du hast mir mal verraten:';
     case 'ratte':
@@ -168,8 +171,8 @@ class _GittyMotivationPageState extends State<GittyMotivationPage> {
                   child: FilledButton(
                     onPressed: enough ? () => Navigator.of(context).pop() : null,
                     style: FilledButton.styleFrom(
-                      backgroundColor: comicRed,
-                      foregroundColor: Colors.white,
+                      backgroundColor: const Color(0xFF3FBF7F),
+                      foregroundColor: comicInk,
                       disabledBackgroundColor: Colors.white,
                       disabledForegroundColor: comicInk,
                       padding: const EdgeInsets.symmetric(vertical: 16),

@@ -3,6 +3,10 @@ String gittyVoiceLine({
   required int dayNumber,
   required String saved,
 }) {
+  final female = companionId.endsWith('_w');
+  final base = female
+      ? companionId.substring(0, companionId.length - 2)
+      : companionId;
   final phase = dayNumber <= 1
       ? 0
       : dayNumber < 7
@@ -11,13 +15,14 @@ String gittyVoiceLine({
               ? 2
               : 3;
   final money = saved.isEmpty ? '' : ' $saved sind schon zur Seite gelegt.';
+  final bird = female ? 'eine verpeilte Taube' : 'einen verpeilten Vogel';
 
-  switch (companionId) {
+  switch (base) {
     case 'taube':
       return [
         'Erster Tag, Plattenspieler aus, Kopf an. Das kriegen wir hin.',
         'Tag $dayNumber. Der Takt kommt langsam zurück.$money',
-        'Tag $dayNumber und noch immer auf Sendung. Nicht schlecht für einen verpeilten Vogel.$money',
+        'Tag $dayNumber und noch immer auf Sendung. Nicht schlecht für $bird.$money',
         'Tag $dayNumber. Ich höre wieder jedes Detail im Beat, und du hörst dich auch wieder.$money',
       ][phase];
     case 'ratte':
