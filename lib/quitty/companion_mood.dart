@@ -1,25 +1,38 @@
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:quitter/gitty_companion.dart';
 
-/// Version der Begleiter: männlich oder weiblich. Gilt für die ganze Gruppe.
+/// Geschlecht der Version. Wird aus der Begleiter-ID abgeleitet (Suffix _w = weiblich).
 enum CompanionGender { male, female }
 
-const _genderKey = 'quitty_companion_gender';
-
-const _names = <String, Map<CompanionGender, String>>{
-  'gitty': {CompanionGender.male: 'Gitty', CompanionGender.female: 'Gitty'},
-  'pjotre': {CompanionGender.male: 'Pjotre', CompanionGender.female: 'Mica'},
-  'rocco': {CompanionGender.male: 'Rocco', CompanionGender.female: 'Rocca'},
-  'dieter': {CompanionGender.male: 'Dieter', CompanionGender.female: 'Dieta'},
+/// App-ID (ohne _w) zu Geschichten-Schlüssel und zurück.
+const _storyKeys = <String, String>{
+  'taube': 'dieter',
+  'ratte': 'gitty',
+  'fuchs': 'pjotre',
+  'waschbaer': 'rocco',
+};
+const _baseIds = <String, String>{
+  'dieter': 'taube',
+  'gitty': 'ratte',
+  'pjotre': 'fuchs',
+  'rocco': 'waschbaer',
 };
 
-String companionDisplayName(String id, CompanionGender g) => _names[id]?[g] ?? id;
+CompanionGender companionGenderOf(String? companionId) =>
+    (companionId?.endsWith('_w') ?? false) ? CompanionGender.female : CompanionGender.male;
 
-Future<CompanionGender> loadCompanionGender() async {
-  final p = await SharedPreferences.getInstance();
-  return p.getString(_genderKey) == 'female' ? CompanionGender.female : CompanionGender.male;
+/// Liefert 'gitty', 'pjotre', 'rocco' oder 'dieter' für eine App-Begleiter-ID.
+String? companionStoryKey(String? companionId) {
+  if (companionId == null) return null;
+  final base = companionId.endsWith('_w')
+      ? companionId.substring(0, companionId.length - 2)
+      : companionId;
+  return _storyKeys[base];
 }
 
-Future<void> saveCompanionGender(CompanionGender g) async {
-  final p = await SharedPreferences.getInstance();
-  await p.setString(_genderKey, g.name);
+/// Name wie in gitty_companion.dart (z. B. Gitty/Gitta, Dieter/Dolores).
+String companionDisplayName(String storyKey, CompanionGender g) {
+  final base = _baseIds[storyKey];
+  if (base == null) return storyKey;
+  final c = gittyCompanionById(g == CompanionGender.female ? '${base}_w' : base);
+  return c?.name ?? storyKey;
 }
