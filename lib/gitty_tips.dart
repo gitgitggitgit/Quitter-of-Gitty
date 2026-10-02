@@ -128,6 +128,16 @@ const gittyTips = <GittyTip>[
         'Quelle: Mindfulness interventions for craving reduction (BMC Neuroscience, 2023)',
   ),
   GittyTip(
+    id: 'wiesn_powder',
+    title: 'Wiesn-Pulver als Ritual-Ersatz',
+    text:
+        'Wenn dir vor allem das Schnupfen fehlt: Weißes Schnupfpulver aus Traubenzucker und Menthol, oft Wiesnkoks genannt, ist als tabakfrei ausgewiesen ohne Tabak und Nikotin. Prüfe die Packung, denn manche Schnupfmittel enthalten Nikotin. Nimm es nur gelegentlich, denn es kann die Nasenschleimhaut reizen.',
+    humor: 'Sieht aus wie Koks, wirkt wie Mundspülung für die Nase.',
+    source:
+        'Quelle: Süddeutsche Zeitung, Was ist das weiße Pulver namens Wiesn-Koks? (2025); tz München (2025)',
+    onlyFor: {'smokeless_tobacco', 'nicotine_pouches'},
+  ),
+  GittyTip(
     id: 'mocktails',
     title: 'Alkoholfreie Cocktails',
     text:
