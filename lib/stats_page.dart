@@ -3,12 +3,54 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:quitter/add_addiction_page.dart';
 import 'package:quitter/addiction_provider.dart';
+import 'package:quitter/comic_style.dart';
 import 'package:quitter/empty_state.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:quitter/utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class StatsPage extends StatelessWidget {
+const _peach = Color(0xFFFFD9B0);
+
+class StatsPage extends StatefulWidget {
   const StatsPage({super.key});
+
+  @override
+  State<StatsPage> createState() => _StatsPageState();
+}
+
+class _StatsPageState extends State<StatsPage> {
+  final Map<String, double> _costs = {};
+  final Map<String, double> _times = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavings();
+  }
+
+  Future<void> _loadSavings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final costs = <String, double>{};
+    final times = <String, double>{};
+    for (final k in prefs.getKeys()) {
+      if (k.startsWith('gitty_cost_')) {
+        final v = prefs.getDouble(k);
+        if (v != null) costs[k.substring('gitty_cost_'.length)] = v;
+      } else if (k.startsWith('gitty_time_')) {
+        final v = prefs.getDouble(k);
+        if (v != null) times[k.substring('gitty_time_'.length)] = v;
+      }
+    }
+    if (!mounted) return;
+    setState(() {
+      _costs
+        ..clear()
+        ..addAll(costs);
+      _times
+        ..clear()
+        ..addAll(times);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,13 +102,13 @@ class StatsPage extends StatelessWidget {
                 left: 16,
                 right: 16,
                 top: 24,
-                bottom: 8,
+                bottom: 12,
               ),
               sliver: SliverToBoxAdapter(
                 child: Text(
                   l10n.statsTitle,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ),
@@ -82,7 +124,7 @@ class StatsPage extends StatelessWidget {
               ),
             ),
             if (moneySaved > 0) ...[
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverToBoxAdapter(
@@ -95,7 +137,7 @@ class StatsPage extends StatelessWidget {
               ),
             ],
             if (hoursSaved >= 1) ...[
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverToBoxAdapter(
@@ -107,7 +149,7 @@ class StatsPage extends StatelessWidget {
                 ),
               ),
             ],
-            const SliverToBoxAdapter(child: SizedBox(height: 12)),
+            const SliverToBoxAdapter(child: SizedBox(height: 14)),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverToBoxAdapter(
@@ -115,7 +157,7 @@ class StatsPage extends StatelessWidget {
               ),
             ),
             if (totalRelapses > 0) ...[
-              const SliverToBoxAdapter(child: SizedBox(height: 12)),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverToBoxAdapter(
@@ -156,14 +198,22 @@ class StatsPage extends StatelessWidget {
       if (quitDate == null) return;
       final days = daysCeil(quitDate);
       final allDays = key != null ? addictions.getDays(key) : <int>[];
+      final userCost = key == null ? null : _costs[key];
+      final userMinutes = key == null ? null : _times[key];
+      final effectiveCost = (userCost != null && userCost > 0)
+          ? userCost
+          : costPerDay;
+      final effectiveHours = (userMinutes != null && userMinutes > 0)
+          ? userMinutes / 60
+          : hoursPerDay;
       entries.add(
         _StatEntry(
           name: name,
           icon: icon,
           color: color,
           days: days,
-          costPerDay: costPerDay,
-          hoursPerDay: hoursPerDay,
+          costPerDay: effectiveCost,
+          hoursPerDay: effectiveHours,
           relapseCount: allDays.length,
           totalRelapseDays: allDays.fold(0, (s, d) => s + d),
         ),
@@ -173,7 +223,7 @@ class StatsPage extends StatelessWidget {
     addPreset(
       addictions.quitAlcohol,
       l10n.addictionAlcohol,
-      Icons.local_bar,
+      Icons.sports_bar_rounded,
       const Color(0xFF6366F1),
       costPerDay: 7.14,
       key: 'alcohol',
@@ -181,7 +231,7 @@ class StatsPage extends StatelessWidget {
     addPreset(
       addictions.quitSmoking,
       l10n.addictionSmoking,
-      Icons.eco,
+      Icons.smoking_rooms_rounded,
       const Color(0xFF10B981),
       costPerDay: 10.0,
       key: 'smoking',
@@ -189,7 +239,7 @@ class StatsPage extends StatelessWidget {
     addPreset(
       addictions.quitVaping,
       l10n.addictionVaping,
-      Icons.air,
+      Icons.cloud_rounded,
       const Color(0xFF06B6D4),
       costPerDay: 5.0,
       key: 'vaping',
@@ -197,7 +247,7 @@ class StatsPage extends StatelessWidget {
     addPreset(
       addictions.quitMarijuana,
       l10n.addictionMarijuana,
-      Icons.grass,
+      Icons.grass_rounded,
       const Color(0xFF84E680),
       costPerDay: 4.29,
       key: 'marijuana',
@@ -205,7 +255,7 @@ class StatsPage extends StatelessWidget {
     addPreset(
       addictions.quitPouches,
       l10n.addictionNicotinePouches,
-      Icons.scatter_plot,
+      Icons.blur_circular_rounded,
       const Color(0xFFF59E0B),
       costPerDay: 5.0,
       key: 'nicotine_pouches',
@@ -213,7 +263,7 @@ class StatsPage extends StatelessWidget {
     addPreset(
       addictions.quitSocialMedia,
       l10n.addictionSocialMedia,
-      Icons.public,
+      Icons.smartphone_rounded,
       const Color(0xFF8B5CF6),
       hoursPerDay: 2.5,
       key: 'social_media',
@@ -221,7 +271,7 @@ class StatsPage extends StatelessWidget {
     addPreset(
       addictions.quitPornography,
       l10n.addictionAdultContent,
-      Icons.block,
+      Icons.visibility_off_rounded,
       const Color(0xFFF43F5E),
       hoursPerDay: 1.0,
       key: 'pornography',
@@ -229,70 +279,70 @@ class StatsPage extends StatelessWidget {
     addPreset(
       addictions.quitOpioids,
       l10n.addictionOpioids,
-      Icons.medication,
+      Icons.medication_rounded,
       const Color(0xFFEC4899),
       key: 'opioids',
     );
     addPreset(
       addictions.quitCocaine,
       l10n.addictionCocaine,
-      Icons.bolt,
+      Icons.ac_unit_rounded,
       const Color(0xFF3B82F6),
       key: 'cocaine',
     );
     addPreset(
       addictions.quitMeth,
       l10n.addictionMeth,
-      Icons.battery_charging_full,
+      Icons.diamond_outlined,
       const Color(0xFF14B8A6),
       key: 'meth',
     );
     addPreset(
       addictions.quitBenzos,
       l10n.addictionBenzos,
-      Icons.bedtime,
+      Icons.bedtime_rounded,
       const Color(0xFF6D5DD3),
       key: 'benzos',
     );
     addPreset(
       addictions.quitAdderall,
       l10n.addictionAdderall,
-      Icons.lightbulb_outline,
+      Icons.rocket_launch_rounded,
       const Color(0xFFFF8C42),
       key: 'adderall',
     );
     addPreset(
       addictions.quitSsri,
       l10n.addictionSsri,
-      Icons.psychology,
+      Icons.psychology_rounded,
       const Color(0xFF7C3AED),
       key: 'ssri',
     );
     addPreset(
       addictions.quitSnri,
       l10n.addictionSnri,
-      Icons.psychology_alt,
+      Icons.psychology_alt_rounded,
       const Color(0xFF6D28D9),
       key: 'snri',
     );
     addPreset(
       addictions.quitTca,
       l10n.addictionTca,
-      Icons.medication_liquid,
+      Icons.medication_liquid_rounded,
       const Color(0xFF5B21B6),
       key: 'tca',
     );
     addPreset(
       addictions.quitMaoi,
       l10n.addictionMaoi,
-      Icons.science,
+      Icons.science_rounded,
       const Color(0xFF4C1D95),
       key: 'maoi',
     );
     addPreset(
       addictions.quitKratom,
       l10n.addictionKratom,
-      Icons.local_florist,
+      Icons.local_florist_rounded,
       const Color(0xFF6D9F4E),
       key: 'kratom',
     );
@@ -306,70 +356,70 @@ class StatsPage extends StatelessWidget {
     addPreset(
       addictions.quitGhb,
       l10n.addictionGhb,
-      Icons.water_drop,
+      Icons.water_drop_rounded,
       const Color(0xFF60A5FA),
       key: 'ghb',
     );
     addPreset(
       addictions.quitKetamine,
       l10n.addictionKetamine,
-      Icons.vaccines,
+      Icons.blur_on_rounded,
       const Color(0xFF818CF8),
       key: 'ketamine',
     );
     addPreset(
       addictions.quitInhalants,
       l10n.addictionInhalants,
-      Icons.local_gas_station,
+      Icons.air_rounded,
       const Color(0xFF9CA3AF),
       key: 'inhalants',
     );
     addPreset(
       addictions.quitSyntheticCannabinoids,
       l10n.addictionSyntheticCannabinoids,
-      Icons.whatshot,
+      Icons.whatshot_rounded,
       const Color(0xFFA3E635),
       key: 'synthetic_cannabinoids',
     );
     addPreset(
       addictions.quitMdma,
       l10n.addictionMdma,
-      Icons.favorite,
+      Icons.celebration_rounded,
       const Color(0xFFF472B6),
       key: 'mdma',
     );
     addPreset(
       addictions.quitSteroids,
       l10n.addictionSteroids,
-      Icons.fitness_center,
+      Icons.fitness_center_rounded,
       const Color(0xFFEF4444),
       key: 'steroids',
     );
     addPreset(
       addictions.quitNitrousOxide,
       l10n.addictionNitrousOxide,
-      Icons.air_outlined,
+      Icons.sentiment_very_satisfied_rounded,
       const Color(0xFF38BDF8),
       key: 'nitrous_oxide',
     );
     addPreset(
       addictions.quitFentanyl,
       l10n.addictionFentanyl,
-      Icons.warning_amber,
+      Icons.warning_amber_rounded,
       const Color(0xFFDC2626),
       key: 'fentanyl',
     );
     addPreset(
       addictions.quitSmokelessTobacco,
       l10n.addictionSmokelessTobacco,
-      Icons.sports_baseball,
+      Icons.spa_rounded,
       const Color(0xFF92400E),
       key: 'smokeless_tobacco',
     );
     addPreset(
       addictions.quitHeroin,
       l10n.addictionHeroin,
-      Icons.medication,
+      Icons.vaccines_rounded,
       const Color(0xFFB91C1C),
       key: 'heroin',
     );
@@ -377,12 +427,18 @@ class StatsPage extends StatelessWidget {
     for (final entry in addictions.entries) {
       final days = daysCeil(entry.quitDate.toIso8601String());
       final customColor = addictions.customColors[entry.id] ?? entry.color;
+      final userCost = _costs[entry.id];
+      final userMinutes = _times[entry.id];
       entries.add(
         _StatEntry(
           name: addictions.customNames[entry.id] ?? entry.title,
           icon: addictions.customIcons[entry.id] ?? entry.icon ?? Icons.star,
           color: customColor,
           days: days,
+          costPerDay: (userCost != null && userCost > 0) ? userCost : null,
+          hoursPerDay: (userMinutes != null && userMinutes > 0)
+              ? userMinutes / 60
+              : null,
           relapseCount: entry.daysAchieved.length,
           totalRelapseDays: entry.daysAchieved.fold(0, (s, d) => s + d),
         ),
@@ -415,6 +471,64 @@ class _StatEntry {
   });
 }
 
+class _StatPanel extends StatelessWidget {
+  const _StatPanel({required this.color, required this.child});
+
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: comicInk, width: 2.5),
+      ),
+      child: child,
+    );
+  }
+}
+
+class _TitleRow extends StatelessWidget {
+  const _TitleRow({required this.icon, required this.title, this.badge});
+
+  final IconData icon;
+  final String title;
+  final Color? badge;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: badge ?? Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: comicInk, width: 2.5),
+          ),
+          child: Icon(icon, color: comicInk, size: 22),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: comicInk,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _JourneyCard extends StatelessWidget {
   const _JourneyCard({
     required this.totalDays,
@@ -429,14 +543,9 @@ class _JourneyCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primary = theme.colorScheme.primary;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        color: primary,
-      ),
+    return _StatPanel(
+      color: comicYellow,
       child: Row(
         children: [
           Expanded(
@@ -446,8 +555,8 @@ class _JourneyCard extends StatelessWidget {
                 Text(
                   l10n.statsJourneyTitle,
                   style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.onPrimary,
-                    fontWeight: FontWeight.w500,
+                    color: comicInk,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -457,28 +566,30 @@ class _JourneyCard extends StatelessWidget {
                     Text(
                       '$totalDays',
                       style: theme.textTheme.displaySmall?.copyWith(
-                        color: theme.colorScheme.onPrimary,
-                        fontWeight: FontWeight.bold,
+                        color: comicInk,
+                        fontWeight: FontWeight.w900,
                         height: 1,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 4),
                       child: Text(
                         l10n.statsDayUnit(totalDays),
                         style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.onPrimary,
+                          color: comicInk,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   l10n.statsAddictionsTracked(addictionCount),
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onPrimary,
+                    color: comicInk,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -486,12 +597,17 @@ class _JourneyCard extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: theme.colorScheme.onPrimary,
+              color: Colors.white,
               shape: BoxShape.circle,
+              border: Border.all(color: comicInk, width: 3),
             ),
-            child: Icon(Icons.emoji_events, color: primary, size: 32),
+            child: const Icon(
+              Icons.emoji_events_rounded,
+              color: comicInk,
+              size: 34,
+            ),
           ),
         ],
       ),
@@ -522,89 +638,68 @@ class _MoneySavedCard extends StatelessWidget {
     final theme = Theme.of(context);
     final currencyFmt = NumberFormat.currency(
       locale: l10n.localeName,
-      symbol: '\$',
+      symbol: '€',
       decimalDigits: 0,
     );
     final equivalence = _equivalence(moneySaved, l10n);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return _StatPanel(
+      color: comicMint,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF16A34A).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.savings,
-                  color: Color(0xFF16A34A),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                l10n.statsMoneySavedTitle,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
+          _TitleRow(icon: Icons.savings_rounded, title: l10n.statsMoneySavedTitle),
           const SizedBox(height: 16),
           Text(
             currencyFmt.format(moneySaved.round()),
             style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF16A34A),
+              fontWeight: FontWeight.w900,
+              color: comicInk,
               height: 1,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             equivalence,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+              color: comicInk,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 16),
           ...moneyEntries.map(
             (e) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
-                  Icon(e.icon, size: 16, color: e.color),
-                  const SizedBox(width: 8),
+                  Icon(e.icon, size: 20, color: comicInk),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       e.name,
-                      style: theme.textTheme.bodySmall,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: comicInk,
+                        fontWeight: FontWeight.w700,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
                     '${currencyFmt.format((e.costPerDay! * e.days).round())}  ·  ${l10n.statsDaysSuffix(e.days)}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: comicInk,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             l10n.statsMoneySavedEstimate,
             style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+              color: comicInk,
               fontStyle: FontStyle.italic,
             ),
           ),
@@ -637,78 +732,55 @@ class _TimeSavedCard extends StatelessWidget {
     final theme = Theme.of(context);
     final equivalence = _equivalence(hoursSaved, l10n);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return _StatPanel(
+      color: comicBlue,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF7C3AED).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.access_time,
-                  color: Color(0xFF7C3AED),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                l10n.statsTimeSavedTitle,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          _TitleRow(
+            icon: Icons.access_time_filled_rounded,
+            title: l10n.statsTimeSavedTitle,
           ),
           const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                l10n.statsHoursSaved(hoursSaved.round()),
-                style: theme.textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF7C3AED),
-                  height: 1,
-                ),
-              ),
-            ],
+          Text(
+            l10n.statsHoursSaved(hoursSaved.round()),
+            style: theme.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: comicInk,
+              height: 1,
+            ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             equivalence,
             style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+              color: comicInk,
+              fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 16),
           ...timeEntries.map(
             (e) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
+              padding: const EdgeInsets.only(bottom: 8),
               child: Row(
                 children: [
-                  Icon(e.icon, size: 16, color: e.color),
-                  const SizedBox(width: 8),
+                  Icon(e.icon, size: 20, color: comicInk),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       e.name,
-                      style: theme.textTheme.bodySmall,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: comicInk,
+                        fontWeight: FontWeight.w700,
+                      ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Text(
                     '${l10n.statsHoursSuffix((e.hoursPerDay! * e.days).round())}  ·  ${l10n.statsDaysSuffix(e.days)}',
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      color: comicInk,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
@@ -729,42 +801,18 @@ class _StreaksCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final maxDays = entries.isEmpty
         ? 1
         : entries.map((e) => e.days).reduce((a, b) => a > b ? a : b);
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return _StatPanel(
+      color: comicPink,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(
-                  Icons.local_fire_department,
-                  color: theme.colorScheme.primary,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                l10n.statsStreaksTitle,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          _TitleRow(
+            icon: Icons.local_fire_department_rounded,
+            title: l10n.statsStreaksTitle,
           ),
           const SizedBox(height: 16),
           ...entries.asMap().entries.map((mapEntry) {
@@ -772,7 +820,7 @@ class _StreaksCard extends StatelessWidget {
             final e = mapEntry.value;
             final fraction = maxDays > 0 ? e.days / maxDays : 0.0;
             return Padding(
-              padding: EdgeInsets.only(bottom: i < entries.length - 1 ? 10 : 0),
+              padding: EdgeInsets.only(bottom: i < entries.length - 1 ? 14 : 0),
               child: _StreakBar(
                 entry: e,
                 fraction: fraction.clamp(0.0, 1.0),
@@ -806,34 +854,41 @@ class _StreakBar extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(entry.icon, size: 14, color: entry.color),
-            const SizedBox(width: 6),
+            Icon(entry.icon, size: 18, color: comicInk),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 entry.name,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w500,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: comicInk,
+                  fontWeight: FontWeight.w800,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
             Text(
               l10n.statsDaysSuffix(entry.days),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                fontWeight: FontWeight.w600,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: comicInk,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: fraction,
-            minHeight: 8,
-            backgroundColor: entry.color.withValues(alpha: 0.15),
-            valueColor: AlwaysStoppedAnimation<Color>(entry.color),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: comicInk, width: 2),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: fraction,
+              minHeight: 14,
+              backgroundColor: Colors.white,
+              valueColor: AlwaysStoppedAnimation<Color>(entry.color),
+            ),
           ),
         ),
       ],
@@ -859,49 +914,30 @@ class _ResilienceCard extends StatelessWidget {
         ? (totalRelapseDays / totalRelapses).round()
         : 0;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return _StatPanel(
+      color: _peach,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF97316).withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.trending_up,
-                  color: Color(0xFFF97316),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                l10n.statsResilienceTitle,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          _TitleRow(
+            icon: Icons.trending_up_rounded,
+            title: l10n.statsResilienceTitle,
           ),
           const SizedBox(height: 16),
           Text(
             l10n.statsTimesBouncedBack(totalRelapses),
-            style: theme.textTheme.bodyLarge,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: comicInk,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           if (avgDays > 0) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
               l10n.statsDaysBeforeRelapse(avgDays),
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                color: comicInk,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],
