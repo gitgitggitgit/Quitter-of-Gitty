@@ -16,4 +16,9 @@ lib/utils.dart
 lib/alcohol_page.dart
 lib/enjoying_page.dart
 lib/app_icons.dart
+lib/icon_picker.dart
 pubspec.yaml
+android/app/src/main/res/mipmap-anydpi-v26
+android/app/src/main/res/drawable
+android/app/src/main/res/values
+android/app/src/main/AndroidManifest.xml
