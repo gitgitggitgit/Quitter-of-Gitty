@@ -1,0 +1,19 @@
+# One path per line (file or folder). Lines starting with # are ignored.
+lib/settings_page.dart
+lib/stats_page.dart
+lib/journal_page.dart
+lib/add_addiction_page.dart
+lib/pin_page.dart
+lib/gitty_companion.dart
+lib/empty_state.dart
+lib/edit_entry_page.dart
+lib/edit_preset_page.dart
+lib/entry_page.dart
+lib/about_page.dart
+lib/whats_new.dart
+lib/milestone_reference_page.dart
+lib/utils.dart
+lib/alcohol_page.dart
+lib/enjoying_page.dart
+lib/app_icons.dart
+pubspec.yaml

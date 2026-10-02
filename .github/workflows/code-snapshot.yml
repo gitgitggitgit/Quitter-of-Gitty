@@ -1,0 +1,46 @@
+name: Code Snapshot
+
+on:
+  push:
+    branches:
+      - feature/gitty-quit-prototype
+    paths:
+      - .github/snapshot-request.txt
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Collect requested files
+        run: |
+          mkdir -p /tmp/snapshot
+          while IFS= read -r p || [ -n "$p" ]; do
+            p="$(echo "$p" | tr -d '[:cntrl:]' | xargs)"
+            [ -z "$p" ] && continue
+            case "$p" in '#'*) continue ;; esac
+            find "$p" -type f '(' -name '*.dart' -o -name '*.yml' -o -name '*.yaml' -o -name '*.arb' -o -name '*.json' -o -name '*.md' -o -name '*.gradle' -o -name '*.kts' -o -name '*.xml' ')' -not -path 'lib/l10n/generated/*' -not -name 'material_icons.dart' -not -name 'cupertino_icons.dart' -size -200k | while IFS= read -r f; do
+              mkdir -p "/tmp/snapshot/$(dirname "$f")"
+              cp "$f" "/tmp/snapshot/$f.txt"
+            done
+          done < .github/snapshot-request.txt
+          find /tmp/snapshot -type f | sort
+
+      - name: Publish snapshot branch
+        run: |
+          git config user.name "snapshot-bot"
+          git config user.email "snapshot-bot@users.noreply.github.com"
+          git checkout --orphan code-snapshot
+          git rm -rf . > /dev/null 2>&1 || true
+          mkdir -p snapshot
+          cp -r /tmp/snapshot/. snapshot/
+          echo "Snapshot of ${GITHUB_SHA}" > snapshot/SOURCE.txt
+          git add snapshot
+          git commit -m "Code snapshot of ${GITHUB_SHA}"
+          git push --force origin code-snapshot
