@@ -23,15 +23,15 @@ String gittyVoiceLine({
     case 'ratte':
       return [
         'Tag eins. Kette ist durch, jetzt gehen wir raus.',
-        'Tag $dayNumber. Die ersten Tage sind der härteste Zaun, und wir sind drüber.$money',
-        'Tag $dayNumber. Mich hält so schnell nichts mehr auf.$money',
+        'Tag $dayNumber. Die ersten Tage sind der härteste Zaun. Wir klettern noch, aber ich hab deinen Rücken!$money',
+        'Tag $dayNumber. Der erste Zaun liegt hinter uns. Weiter geht es, Schritt für Schritt.$money',
         'Tag $dayNumber. Ich habe schon ganz andere Schlösser geknackt, du auch.$money',
       ][phase];
     case 'fuchs':
       return [
         'Tag eins. Ich sag nichts, ich schaue nur zu.',
         'Tag $dayNumber. Du hältst durch, das bleibt unter uns.$money',
-        'Tag $dayNumber. Ich habe schon viele aufgeben sehen, du gehörst nicht dazu.$money',
+        'Tag $dayNumber. Ich habe schon viele aufgeben sehen, du gehörst bisher nicht dazu.$money',
         'Tag $dayNumber. Langsam wird es unheimlich ruhig, genau so mag ich es.$money',
       ][phase];
     case 'waschbaer':
