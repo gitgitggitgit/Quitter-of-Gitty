@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:quitter/comic_style.dart';
+import 'package:quitter/gitty_icons.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:quitter/utils.dart';
 
@@ -49,6 +50,9 @@ class QuitCard extends StatelessWidget {
     final shadow = dark
         ? Color.lerp(gradientColors.first, Colors.white, 0.35)!
         : comicInk;
+    final shownIcon = heroTag is String
+        ? gittyIcon(heroTag as String, icon)
+        : icon;
 
     final card = Hero(
       tag: heroTag,
@@ -79,7 +83,7 @@ class QuitCard extends StatelessWidget {
                         border: Border.all(color: comicInk, width: 2.5),
                       ),
                       child: Icon(
-                        icon,
+                        shownIcon,
                         color: getContrastingColor(accent),
                         size: 24,
                       ),
