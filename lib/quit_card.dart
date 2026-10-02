@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:quitter/comic_style.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:quitter/utils.dart';
 
@@ -25,93 +26,84 @@ class QuitCard extends StatelessWidget {
   final String? quitDate;
   final VoidCallback onTap;
 
-  /// When non-null, shows a delete badge in the top-left corner.
+  /// When non-null, shows a delete badge in the top-right corner.
   final VoidCallback? onDelete;
 
-  /// When non-null, shows a rename badge in the top-right corner.
+  /// When non-null, shows a rename badge in the bottom-right corner.
   final VoidCallback? onRename;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final dark = theme.brightness == Brightness.dark;
     final parsedQuitDate = quitDate == null
         ? null
         : DateTime.tryParse(quitDate!);
     final days = parsedQuitDate == null
         ? null
         : daysCeil(parsedQuitDate.toIso8601String());
+    final editing = onDelete != null || onRename != null;
+
+    final accent = gradientColors.last;
+    final fill = Color.lerp(gradientColors.first, Colors.white, 0.72)!;
+    final shadow = dark
+        ? Color.lerp(gradientColors.first, Colors.white, 0.35)!
+        : comicInk;
 
     final card = Hero(
       tag: heroTag,
-      child: Card(
-        elevation: 0,
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 4, bottom: 4),
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: gradientColors,
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: gradientColors.first.withAlpha(255 ~/ (1 / 0.3)),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            color: fill,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: comicInk, width: 3),
+            boxShadow: [BoxShadow(color: shadow, offset: const Offset(4, 4))],
           ),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(20),
-              splashColor: Colors.white.withAlpha(255 ~/ (1 / 0.3)),
-              highlightColor: Colors.white.withAlpha(255 ~/ (1 / 0.1)),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surface.withAlpha(255 ~/ (1 / 0.9)),
-                ),
+              borderRadius: BorderRadius.circular(17),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: gradientColors,
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: accent,
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: comicInk, width: 2.5),
                       ),
                       child: Icon(
                         icon,
-                        color: getContrastingColor(gradientColors.last),
+                        color: getContrastingColor(accent),
                         size: 24,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
                         title,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w600),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: comicInk,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 4),
-                    if (days != null) ...[
+                    if (days != null)
                       RichText(
                         text: TextSpan(
-                          style: Theme.of(context).textTheme.headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            color: comicInk,
+                            fontWeight: FontWeight.w900,
+                          ),
                           children: [
                             TextSpan(text: '$days'),
                             TextSpan(
@@ -120,55 +112,60 @@ class QuitCard extends StatelessWidget {
                                     context,
                                   )?.quitCardKeepDays(days) ??
                                   (days == 1 ? ' day' : ' days'),
-                              style: Theme.of(context).textTheme.bodyLarge
-                                  ?.copyWith(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withAlpha(255 ~/ (1 / 0.7)),
-                                  ),
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: comicInk,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ] else ...[
+                      )
+                    else
                       Text(
                         AppLocalizations.of(context)?.quitCardSubtitle ??
                             'Tap to start',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withAlpha(255 ~/ (1 / 0.6)),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: comicInk,
                           fontStyle: FontStyle.italic,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ],
-
-                    if (parsedQuitDate != null) ...[
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withAlpha(255 ~/ (1 / 0.1)),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          DateFormat.yMMMd(
-                            AppLocalizations.of(context)?.localeName,
-                          ).format(parsedQuitDate),
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                                fontWeight: FontWeight.w500,
+                    const Spacer(),
+                    Row(
+                      children: [
+                        if (parsedQuitDate != null)
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
-                        ),
-                      ),
-                    ],
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: comicInk, width: 2),
+                              ),
+                              child: Text(
+                                DateFormat.yMMMd(
+                                  AppLocalizations.of(context)?.localeName,
+                                ).format(parsedQuitDate),
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: comicInk,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        const Spacer(),
+                        if (!editing)
+                          const Icon(
+                            Icons.arrow_forward_rounded,
+                            color: comicInk,
+                            size: 24,
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -178,7 +175,7 @@ class QuitCard extends StatelessWidget {
       ),
     );
 
-    if (onDelete == null && onRename == null) return card;
+    if (!editing) return card;
 
     return Stack(
       fit: StackFit.expand,
@@ -193,35 +190,33 @@ class QuitCard extends StatelessWidget {
               onTap: onDelete,
               behavior: HitTestBehavior.opaque,
               child: Container(
-                width: 26,
-                height: 26,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: gradientColors.last,
+                  color: comicRed,
                   shape: BoxShape.circle,
+                  border: Border.all(color: comicInk, width: 2.5),
                 ),
-                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                child: const Icon(Icons.close, color: Colors.white, size: 20),
               ),
             ),
           ),
         if (onRename != null)
           Positioned(
-            bottom: 6,
-            right: 6,
+            bottom: 10,
+            right: 10,
             child: GestureDetector(
               onTap: onRename,
               behavior: HitTestBehavior.opaque,
               child: Container(
-                width: 26,
-                height: 26,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: comicYellow,
                   shape: BoxShape.circle,
+                  border: Border.all(color: comicInk, width: 2.5),
                 ),
-                child: Icon(
-                  Icons.edit,
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  size: 14,
-                ),
+                child: const Icon(Icons.edit, color: comicInk, size: 18),
               ),
             ),
           ),
