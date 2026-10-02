@@ -5,6 +5,7 @@ import 'package:quitter/comic_style.dart';
 import 'package:quitter/gitty_companion.dart';
 import 'package:quitter/gitty_days.dart';
 import 'package:quitter/gitty_motivation.dart';
+import 'package:quitter/gitty_tips.dart';
 import 'package:quitter/gitty_voice.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -255,6 +256,7 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
         final days = elapsed.isNegative ? 0 : elapsed.inDays;
         final dayNumber = days + 1;
         final dayContent = gittyDayAll(habit.key, dayNumber);
+        final tip = gittyTipFor(habit.key, dayNumber);
         final motivation = gittyMotivationFor(_reasons, habit.key, dayNumber);
         final intro = motivation == null || companion == null
             ? null
@@ -268,7 +270,6 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
         final needMore = _reasons.length < gittyMinReasons;
         final reasonsLabel =
             'Mindestens $gittyMinReasons Gründe wählen (${_reasons.length}/$gittyMinReasons)';
-        final inkButton = TextButton.styleFrom(foregroundColor: comicInk);
         int? nextMilestone;
         for (final m in _milestones) {
           if (m > days) {
@@ -395,13 +396,12 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               if (cost == 0)
-                TextButton.icon(
-                  style: inkButton,
-                  onPressed: () => _editCost(habit),
-                  icon: const Icon(Icons.euro),
-                  label: const Text('Kosten pro Tag eingeben'),
+                _ComicButton(
+                  icon: Icons.euro,
+                  label: 'Kosten pro Tag eingeben',
+                  onTap: () => _editCost(habit),
                 )
               else ...[
                 Row(
@@ -424,7 +424,7 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                         IconButton(
                           visualDensity: VisualDensity.compact,
                           onPressed: () => _editCost(habit),
-                          icon: const Icon(Icons.edit, size: 18, color: on),
+                          icon: const Icon(Icons.edit, size: 20, color: on),
                         ),
                       ],
                     ),
@@ -432,23 +432,23 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                 ),
                 _Row(label: 'Insgesamt gespart', value: _euro(totalSaved)),
               ],
-              if (needMore)
-                TextButton.icon(
-                  style: inkButton,
-                  onPressed: () => _openMotivations(),
-                  icon: const Icon(Icons.favorite_outline),
-                  label: Text(reasonsLabel),
+              if (needMore) ...[
+                const SizedBox(height: 10),
+                _ComicButton(
+                  icon: Icons.favorite_outline,
+                  label: reasonsLabel,
+                  onTap: () => _openMotivations(),
                 ),
+              ],
               if (!_expanded) ...[
-                const SizedBox(height: 8),
-                Text(
-                  motivation != null
-                      ? 'Tippen für deinen Grund und die Tagesmission'
-                      : 'Tippen für Wissensimpuls und Tagesmission',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: on,
-                    fontWeight: FontWeight.w700,
-                  ),
+                const SizedBox(height: 12),
+                _ComicButton(
+                  icon: Icons.expand_more,
+                  label: motivation != null
+                      ? 'Grund & Tagesmission aufklappen'
+                      : 'Wissen & Tagesmission aufklappen',
+                  color: comicYellow,
+                  onTap: () => setState(() => _expanded = true),
                 ),
               ],
               if (_expanded) ...[
@@ -518,14 +518,48 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 12),
-                TextButton.icon(
-                  style: inkButton,
-                  onPressed: () => _openMotivations(),
-                  icon: const Icon(Icons.edit_note),
-                  label: Text(needMore ? reasonsLabel : 'Meine Gründe bearbeiten'),
+                if (tip != null) ...[
+                  const Divider(height: 28, color: comicInk, thickness: 2),
+                  const _Title(icon: Icons.lightbulb_outline, label: 'TIPP'),
+                  const SizedBox(height: 8),
+                  Text(
+                    tip.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: on,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    tip.text,
+                    style: theme.textTheme.bodyMedium?.copyWith(color: on),
+                  ),
+                  if (tip.humor != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      tip.humor!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: on,
+                        fontWeight: FontWeight.w700,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                  if (tip.source != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      tip.source!,
+                      style: theme.textTheme.labelMedium?.copyWith(color: on),
+                    ),
+                  ],
+                ],
+                const SizedBox(height: 14),
+                _ComicButton(
+                  icon: Icons.edit_note,
+                  label: needMore ? reasonsLabel : 'Meine Gründe bearbeiten',
+                  onTap: () => _openMotivations(),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 14),
                 Row(
                   children: [
                     const Icon(Icons.stars_rounded, color: on),
@@ -542,11 +576,89 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 14),
+                _ComicButton(
+                  icon: Icons.expand_less,
+                  label: 'Zuklappen',
+                  color: comicYellow,
+                  onTap: () => setState(() => _expanded = false),
+                ),
               ],
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _ComicButton extends StatelessWidget {
+  const _ComicButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = Colors.white,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(right: 3, bottom: 3),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: const [
+              BoxShadow(color: comicInk, offset: Offset(3, 3)),
+            ],
+          ),
+          child: Material(
+            color: color,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: comicInk, width: 2.5),
+            ),
+            child: InkWell(
+              customBorder: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              onTap: onTap,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon, size: 22, color: comicInk),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          label,
+                          style: const TextStyle(
+                            color: comicInk,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
