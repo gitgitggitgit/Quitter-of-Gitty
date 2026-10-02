@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_description">Quit tracker</string>
+    <string name="widget_selection_title">Choose what to track</string>
+    <string name="widget_selection_subtitle">Count the days since you\'ve quit on the home screen</string>
+    <string name="addiction_alcohol">Alcohol</string>
+    <string name="addiction_vaping">Vaping</string>
+    <string name="addiction_smoking">Smoking</string>
+    <string name="addiction_smokeless_tobacco">Dip / Chewing Tobacco</string>
+    <string name="addiction_marijuana">Marijuana</string>
+    <string name="addiction_nicotine_pouches">Nicotine Pouches</string>
+    <string name="addiction_opioids">Opioids</string>
+    <string name="addiction_heroin">Heroin</string>
+    <string name="addiction_fentanyl">Fentanyl</string>
+    <string name="addiction_social_media">Social Media</string>
+    <string name="addiction_pornography">Adult Content</string>
+    <string name="addiction_cocaine">Cocaine</string>
+    <string name="addiction_meth">Meth</string>
+    <string name="addiction_benzos">Benzodiazepines</string>
+    <string name="addiction_adderall">Adderall</string>
+    <string name="addiction_ssri">SSRI</string>
+    <string name="addiction_snri">SNRI</string>
+    <string name="addiction_tca">TCA</string>
+    <string name="addiction_maoi">MAOI</string>
+    <string name="addiction_nitrous_oxide">Nitrous Oxide</string>
+    <string name="addiction_kratom">Kratom</string>
+    <string name="addiction_gabapentinoids">Gabapentin / Pregabalin</string>
+    <string name="addiction_ghb">GHB</string>
+    <string name="addiction_ketamine">Ketamine</string>
+    <string name="addiction_inhalants">Inhalants</string>
+    <string name="addiction_synthetic_cannabinoids">Synthetic Cannabinoids</string>
+    <string name="addiction_mdma">MDMA</string>
+    <string name="addiction_steroids">Anabolic Steroids</string>
+    <plurals name="widget_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="widget_not_set">Not set</string>
+    <string name="widget_unknown">Unknown</string>
+    <string name="widget_error">Error</string>
+    <string name="widget_setup_text">Tap to\nSetup</string>
+    <string name="widget_addiction_placeholder">Addiction</string>
+    <string name="widget_zero_days">0 days</string>
+</resources>

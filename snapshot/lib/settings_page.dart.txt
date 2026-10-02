@@ -1,0 +1,1214 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:quitter/l10n/generated/app_localizations.dart';
+import 'package:quitter/locale_utils.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart'
+    show Consumer, ReadContext, WatchContext;
+import 'package:quitter/about_page.dart';
+import 'package:quitter/addiction_provider.dart';
+import 'package:quitter/app_scheme.dart';
+import 'package:quitter/color_scheme_type.dart';
+import 'package:quitter/enjoying_page.dart';
+import 'package:quitter/empty_state.dart';
+import 'package:quitter/settings_provider.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:quitter/tasks.dart';
+import 'package:quitter/utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:quitter/whats_new.dart';
+import 'package:quitter/app_theme_mode.dart';
+import 'package:url_launcher/url_launcher_string.dart';
+
+class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  final TextEditingController _searchController = TextEditingController();
+  final _pinTimeoutController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+    final settings = context.read<SettingsProvider>();
+    _pinTimeoutController.text = settings.pinTimeout.toString();
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _pinTimeoutController.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.tabSettings)),
+      body: Consumer<SettingsProvider>(
+        builder: (context, settings, child) {
+          final List<Widget> filteredItems = _buildFilteredSettingsItems(
+            context,
+            settings,
+          );
+
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
+                child: SearchBar(
+                  leading: Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: const Icon(Icons.search),
+                  ),
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  hintText: l10n.settingsSearchHint,
+                ),
+              ),
+              Expanded(
+                child: filteredItems.isEmpty && _searchQuery.isNotEmpty
+                    ? AppEmptyState(
+                        icon: Icons.search_off_rounded,
+                        title: l10n.noSearchResults,
+                        actionLabel: l10n.clearSearch,
+                        actionIcon: Icons.close_rounded,
+                        onAction: _searchController.clear,
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.all(16.0),
+                        children: filteredItems,
+                      ),
+              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _exportData(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    final prefs = await SharedPreferences.getInstance();
+    Map<String, dynamic> data = {};
+    for (String key in prefs.getKeys()) {
+      data[key] = prefs.get(key);
+    }
+
+    final json = jsonEncode(data);
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+    final path = await FilePicker.saveFile(
+      dialogTitle: l10n.settingsExportSaveDialog,
+      fileName: 'quitter-$timestamp.json',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+      bytes: Uint8List.fromList(utf8.encode(json)),
+    );
+
+    if (path == null) return;
+
+    if (defaultTargetPlatform == TargetPlatform.linux) {
+      final file = File(path);
+      await file.writeAsString(json);
+    }
+
+    if (!context.mounted) return;
+    toast(l10n.dataExported);
+  }
+
+  Map<String, Object> _validateImportData(Object? decoded) {
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException('Expected a JSON object');
+    }
+
+    final result = <String, Object>{};
+    for (final entry in decoded.entries) {
+      final value = entry.value;
+      if (value is bool || value is int || value is double || value is String) {
+        result[entry.key] = value as Object;
+      } else if (value is List && value.every((item) => item is String)) {
+        result[entry.key] = value.cast<String>();
+      } else {
+        throw FormatException('Unsupported value for ${entry.key}');
+      }
+    }
+    return result;
+  }
+
+  Future<void> _importData(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
+    FilePickerResult? result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+    );
+    if (result == null || result.files.isEmpty) return;
+
+    try {
+      final pickResult = result.files.first;
+      final bytes = await pickResult.readAsBytes();
+      final contents = utf8.decode(bytes);
+
+      final data = _validateImportData(jsonDecode(contents));
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+
+      for (final entry in data.entries) {
+        final key = entry.key;
+        final value = entry.value;
+        if (value is bool) {
+          await prefs.setBool(key, value);
+        } else if (value is int) {
+          await prefs.setInt(key, value);
+        } else if (value is double) {
+          await prefs.setDouble(key, value);
+        } else if (value is String) {
+          await prefs.setString(key, value);
+        } else if (value is List<String>) {
+          await prefs.setStringList(key, value);
+        }
+      }
+
+      if (!context.mounted) return;
+      toast(l10n.dataImported);
+
+      final addictions = context.read<AddictionProvider>();
+      final settings = context.read<SettingsProvider>();
+      await Future.wait([
+        addictions.loadAddictions(),
+        settings.loadPreferences(),
+      ]);
+      if (!context.mounted || defaultTargetPlatform == TargetPlatform.linux)
+        return;
+
+      if (settings.notifyEvery == 0) return;
+      if (!addictions.hasActivePresetJourney && addictions.entries.isEmpty)
+        return;
+
+      await Permission.notification.request();
+    } catch (_) {
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.dataImportFailed),
+          content: Text(l10n.dataImportFailedMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.ok),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  List<Widget> _buildSecuritySectionItems(
+    BuildContext context,
+    SettingsProvider settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      _sectionHeader(l10n.settingsSectionSecurity, context),
+      SwitchListTile(
+        secondary: const Icon(Icons.lock),
+        title: Text(l10n.settingsPinLock),
+        subtitle: Text(l10n.settingsPinLockSubtitle),
+        value: settings.isPinEnabled,
+        onChanged: (value) async {
+          if (!value) {
+            final confirmed = await _showVerifyPinDialog(context);
+            if (confirmed) {
+              await settings.setPinEnabled(false, null);
+            }
+            return;
+          }
+
+          final pin = await _showSetPinDialog(context);
+          if (pin == null) return;
+          await settings.setPinEnabled(true, pin);
+        },
+      ),
+      ListTile(
+        leading: Icon(Icons.timer_outlined),
+        title: TextField(
+          controller: _pinTimeoutController,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: InputDecoration(
+            labelText: l10n.settingsPinTimeout,
+            hintText: l10n.settingsPinTimeoutHint,
+          ),
+          onChanged: (value) {
+            final timeout = int.tryParse(value);
+            if (timeout != null) settings.setPinTimeout(timeout);
+          },
+        ),
+      ),
+    ];
+  }
+
+  Future<String?> _showSetPinDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    final confirmController = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          title: Text(l10n.pinDialogSetTitle),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                maxLength: 6,
+                decoration: InputDecoration(
+                  labelText: l10n.pinDialogEnterPIN,
+                  counterText: '',
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: confirmController,
+                obscureText: true,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                maxLength: 6,
+                decoration: InputDecoration(
+                  labelText: l10n.pinDialogConfirmPIN,
+                  counterText: '',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () {
+                if (controller.text == confirmController.text &&
+                    controller.text.isNotEmpty) {
+                  Navigator.pop(context, controller.text);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(l10n.pinDialogPINsDoNotMatch)),
+                  );
+                }
+              },
+              child: Text(l10n.pinDialogSet),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    confirmController.dispose();
+    return result;
+  }
+
+  Future<bool> _showVerifyPinDialog(BuildContext context) async {
+    final controller = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          title: Text(l10n.pinDialogEnterPIN),
+          content: TextField(
+            controller: controller,
+            obscureText: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            maxLength: 6,
+            decoration: InputDecoration(
+              labelText: l10n.pinDialogPIN,
+              counterText: '',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text),
+              child: Text(l10n.pinDialogOK),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+    if (result == null || !context.mounted) return false;
+
+    final settings = context.read<SettingsProvider>();
+    return await settings.verifyPin(result);
+  }
+
+  List<Widget> _buildAppearanceSectionItems(
+    BuildContext context,
+    SettingsProvider settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      _sectionHeader(l10n.settingsSectionAppearance, context),
+      Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 8),
+        child: SegmentedButton<AppThemeMode>(
+          segments: [
+            ButtonSegment(
+              value: AppThemeMode.system,
+              label: Text(l10n.themeSystem),
+              icon: const Icon(Icons.brightness_auto),
+            ),
+            ButtonSegment(
+              value: AppThemeMode.dark,
+              label: Text(l10n.themeDark),
+              icon: const Icon(Icons.dark_mode),
+            ),
+            ButtonSegment(
+              value: AppThemeMode.light,
+              label: Text(l10n.themeLight),
+              icon: const Icon(Icons.light_mode),
+            ),
+          ],
+          selected: {
+            settings.themeMode == AppThemeMode.pureBlack
+                ? AppThemeMode.dark
+                : settings.themeMode,
+          },
+          onSelectionChanged: (selection) {
+            settings.themeMode = selection.first;
+          },
+        ),
+      ),
+      SwitchListTile(
+        secondary: const Icon(Icons.contrast),
+        title: Text(l10n.themePureBlack),
+        value: settings.themeMode == AppThemeMode.pureBlack,
+        onChanged: (value) {
+          settings.themeMode = value
+              ? AppThemeMode.pureBlack
+              : AppThemeMode.dark;
+        },
+      ),
+      _ColorSchemePicker(settings: settings),
+      ListTile(
+        leading: const Icon(Icons.language),
+        title: Text(l10n.settingsLocale),
+        subtitle: Text(_localeDisplayName(l10n, settings.locale)),
+        onTap: () => _showLocaleDialog(context, settings),
+      ),
+      SwitchListTile(
+        secondary: const Icon(Icons.restart_alt),
+        title: Text(l10n.settingsResetButtons),
+        subtitle: Text(l10n.settingsResetButtonsSubtitle),
+        value: settings.showReset,
+        onChanged: (value) => settings.showReset = value,
+      ),
+      SwitchListTile(
+        secondary: const Icon(Icons.menu_book),
+        title: Text(l10n.settingsShowJournal),
+        subtitle: Text(l10n.settingsShowJournalSubtitle),
+        value: settings.showJournal,
+        onChanged: (value) => settings.showJournal = value,
+      ),
+      if (defaultTargetPlatform == TargetPlatform.android) ...[
+        SwitchListTile(
+          secondary: const Icon(Icons.swipe),
+          title: Text(l10n.settingsSwipeBetweenTabs),
+          subtitle: Text(l10n.settingsSwipeBetweenTabsSubtitle),
+          value: settings.swipeTabs,
+          onChanged: (value) => settings.swipeTabs = value,
+        ),
+      ],
+      SwitchListTile(
+        secondary: const Icon(Icons.calendar_today),
+        title: Text(l10n.settingsWeekStartsMonday),
+        subtitle: Text(l10n.settingsWeekStartsMondaySubtitle),
+        value: settings.weekStartsMonday,
+        onChanged: (value) => settings.weekStartsMonday = value,
+      ),
+    ];
+  }
+
+  List<Widget> _buildNotificationsSectionItems(
+    BuildContext context,
+    SettingsProvider settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    final addictions = context.watch<AddictionProvider>();
+
+    _ToggleItem presetToggle(String key, IconData icon, String title) =>
+        _ToggleItem(
+          icon: icon,
+          title: title,
+          subtitle: l10n.settingsNotifyCustomEntry(title),
+          value: settings.getPresetNotify(key),
+          onChanged: (value) => settings.setPresetNotify(key, value),
+          notifyPrefsKey: key,
+          notifyDisplayName: title,
+        );
+
+    final allItems = [
+      if (addictions.quitAdderall != null)
+        _ToggleItem(
+          icon: Icons.lightbulb_outline,
+          title: l10n.addictionAdderall,
+          subtitle: l10n.settingsNotifyAdderall,
+          value: settings.notifyAdderall,
+          onChanged: (value) => settings.notifyAdderall = value,
+          notifyPrefsKey: 'adderall',
+          notifyDisplayName: l10n.addictionAdderall,
+        ),
+      if (addictions.quitSsri != null)
+        _ToggleItem(
+          icon: Icons.psychology,
+          title: l10n.addictionSsri,
+          subtitle: l10n.settingsNotifySsri,
+          value: settings.notifySsri,
+          onChanged: (value) => settings.notifySsri = value,
+          notifyPrefsKey: 'ssri',
+          notifyDisplayName: l10n.addictionSsri,
+        ),
+      if (addictions.quitSnri != null)
+        _ToggleItem(
+          icon: Icons.psychology_alt,
+          title: l10n.addictionSnri,
+          subtitle: l10n.settingsNotifySnri,
+          value: settings.notifySnri,
+          onChanged: (value) => settings.notifySnri = value,
+          notifyPrefsKey: 'snri',
+          notifyDisplayName: l10n.addictionSnri,
+        ),
+      if (addictions.quitTca != null)
+        _ToggleItem(
+          icon: Icons.medication_liquid,
+          title: l10n.addictionTca,
+          subtitle: l10n.settingsNotifyTca,
+          value: settings.notifyTca,
+          onChanged: (value) => settings.notifyTca = value,
+          notifyPrefsKey: 'tca',
+          notifyDisplayName: l10n.addictionTca,
+        ),
+      if (addictions.quitMaoi != null)
+        _ToggleItem(
+          icon: Icons.science,
+          title: l10n.addictionMaoi,
+          subtitle: l10n.settingsNotifyMaoi,
+          value: settings.notifyMaoi,
+          onChanged: (value) => settings.notifyMaoi = value,
+          notifyPrefsKey: 'maoi',
+          notifyDisplayName: l10n.addictionMaoi,
+        ),
+      if (addictions.quitNitrousOxide != null)
+        presetToggle(
+          'nitrous_oxide',
+          Icons.air_outlined,
+          l10n.addictionNitrousOxide,
+        ),
+      if (addictions.quitKratom != null)
+        presetToggle('kratom', Icons.local_florist, l10n.addictionKratom),
+      if (addictions.quitGabapentinoids != null)
+        presetToggle(
+          'gabapentinoids',
+          Icons.medication_outlined,
+          l10n.addictionGabapentinoid,
+        ),
+      if (addictions.quitGhb != null)
+        presetToggle('ghb', Icons.water_drop, l10n.addictionGhb),
+      if (addictions.quitKetamine != null)
+        presetToggle('ketamine', Icons.vaccines, l10n.addictionKetamine),
+      if (addictions.quitInhalants != null)
+        presetToggle(
+          'inhalants',
+          Icons.local_gas_station,
+          l10n.addictionInhalants,
+        ),
+      if (addictions.quitSyntheticCannabinoids != null)
+        presetToggle(
+          'synthetic_cannabinoids',
+          Icons.whatshot,
+          l10n.addictionSyntheticCannabinoids,
+        ),
+      if (addictions.quitMdma != null)
+        presetToggle('mdma', Icons.favorite, l10n.addictionMdma),
+      if (addictions.quitSteroids != null)
+        presetToggle('steroids', Icons.fitness_center, l10n.addictionSteroids),
+      if (addictions.quitAlcohol != null)
+        _ToggleItem(
+          icon: Icons.local_bar,
+          title: l10n.addictionAlcohol,
+          subtitle: l10n.settingsNotifyAlcohol,
+          value: settings.notifyAlcohol,
+          onChanged: (value) => settings.notifyAlcohol = value,
+          notifyPrefsKey: 'alcohol',
+          notifyDisplayName: l10n.addictionAlcohol,
+        ),
+      if (addictions.quitBenzos != null)
+        _ToggleItem(
+          icon: Icons.bedtime,
+          title: l10n.addictionBenzos,
+          subtitle: l10n.settingsNotifyBenzos,
+          value: settings.notifyBenzos,
+          onChanged: (value) => settings.notifyBenzos = value,
+          notifyPrefsKey: 'benzos',
+          notifyDisplayName: l10n.addictionBenzos,
+        ),
+      if (addictions.quitCocaine != null)
+        _ToggleItem(
+          icon: Icons.bolt,
+          title: l10n.addictionCocaine,
+          subtitle: l10n.settingsNotifyCocaine,
+          value: settings.notifyCocaine,
+          onChanged: (value) => settings.notifyCocaine = value,
+          notifyPrefsKey: 'cocaine',
+          notifyDisplayName: l10n.addictionCocaine,
+        ),
+      if (addictions.quitMarijuana != null)
+        _ToggleItem(
+          icon: Icons.grass,
+          title: l10n.addictionMarijuana,
+          subtitle: l10n.settingsNotifyMarijuana,
+          value: settings.notifyMarijuana,
+          onChanged: (value) => settings.notifyMarijuana = value,
+          notifyPrefsKey: 'marijuana',
+          notifyDisplayName: l10n.addictionMarijuana,
+        ),
+      if (addictions.quitMeth != null)
+        _ToggleItem(
+          icon: Icons.battery_charging_full,
+          title: l10n.addictionMeth,
+          subtitle: l10n.settingsNotifyMeth,
+          value: settings.notifyMeth,
+          onChanged: (value) => settings.notifyMeth = value,
+          notifyPrefsKey: 'meth',
+          notifyDisplayName: l10n.addictionMeth,
+        ),
+      if (addictions.quitPouches != null)
+        _ToggleItem(
+          icon: Icons.scatter_plot,
+          title: l10n.addictionNicotinePouches,
+          subtitle: l10n.settingsNotifyNicotinePouches,
+          value: settings.notifyPouches,
+          onChanged: (value) => settings.notifyPouches = value,
+          notifyPrefsKey: 'nicotine_pouches',
+          notifyDisplayName: l10n.addictionNicotinePouches,
+        ),
+      if (addictions.quitOpioids != null)
+        _ToggleItem(
+          icon: Icons.medication,
+          title: l10n.addictionOpioids,
+          subtitle: l10n.settingsNotifyOpioids,
+          value: settings.notifyOpioids,
+          onChanged: (value) => settings.notifyOpioids = value,
+          notifyPrefsKey: 'opioids',
+          notifyDisplayName: l10n.addictionOpioids,
+        ),
+      if (addictions.quitHeroin != null)
+        presetToggle('heroin', Icons.medication, l10n.addictionHeroin),
+      if (addictions.quitFentanyl != null)
+        presetToggle('fentanyl', Icons.medication, l10n.addictionFentanyl),
+      if (addictions.quitPornography != null)
+        _ToggleItem(
+          icon: Icons.block,
+          title: l10n.addictionAdultContent,
+          subtitle: l10n.settingsNotifyAdultContent,
+          value: settings.notifyPornography,
+          onChanged: (value) => settings.notifyPornography = value,
+          notifyPrefsKey: 'pornography',
+          notifyDisplayName: l10n.addictionAdultContent,
+        ),
+      if (addictions.quitSmoking != null)
+        _ToggleItem(
+          icon: Icons.eco,
+          title: l10n.addictionSmoking,
+          subtitle: l10n.settingsNotifySmoking,
+          value: settings.notifySmoking,
+          onChanged: (value) => settings.notifySmoking = value,
+          notifyPrefsKey: 'smoking',
+          notifyDisplayName: l10n.addictionSmoking,
+        ),
+      if (addictions.quitSmokelessTobacco != null)
+        presetToggle(
+          'smokeless_tobacco',
+          Icons.grass,
+          l10n.addictionSmokelessTobacco,
+        ),
+      if (addictions.quitSocialMedia != null)
+        _ToggleItem(
+          icon: Icons.public,
+          title: l10n.addictionSocialMedia,
+          subtitle: l10n.settingsNotifySocialMedia,
+          value: settings.notifySocialMedia,
+          onChanged: (value) => settings.notifySocialMedia = value,
+          notifyPrefsKey: 'social_media',
+          notifyDisplayName: l10n.addictionSocialMedia,
+        ),
+      if (addictions.quitVaping != null)
+        _ToggleItem(
+          icon: Icons.air,
+          title: l10n.addictionVaping,
+          subtitle: l10n.settingsNotifyVaping,
+          value: settings.notifyVaping,
+          onChanged: (value) => settings.notifyVaping = value,
+          notifyPrefsKey: 'vaping',
+          notifyDisplayName: l10n.addictionVaping,
+        ),
+      for (final entry in addictions.entries)
+        _ToggleItem(
+          icon: entry.icon ?? Icons.star_outline,
+          title: entry.title,
+          subtitle: l10n.settingsNotifyCustomEntry(entry.title),
+          value: settings.getEntryNotify(entry.id),
+          onChanged: (value) => settings.setEntryNotify(entry.id, value),
+          notifyDisplayName: entry.title,
+          notifyQuitDate: entry.quitDate.toIso8601String(),
+        ),
+      _ToggleItem(
+        icon: Icons.reset_tv,
+        title: l10n.settingsResetMessages,
+        subtitle: l10n.settingsResetMessagesSubtitle,
+        value: settings.notifyRelapse,
+        onChanged: (value) => settings.notifyRelapse = value,
+      ),
+    ];
+
+    return [
+      _sectionHeader(l10n.settingsSectionNotifications, context),
+      ListTile(
+        leading: const Icon(Icons.schedule),
+        title: Text(l10n.settingsNotificationFrequency),
+        subtitle: Text(
+          l10n.settingsNotificationFrequencySubtitle(
+            settings.notifyEvery,
+            getTimeString(context, settings.notifyAt),
+          ),
+        ),
+        onTap: () => _showNotificationFrequencyDialog(context, settings),
+      ),
+      ..._buildToggleList(allItems),
+    ];
+  }
+
+  void _deleteEverything(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return AlertDialog(
+          title: Text(l10n.settingsDeleteEverything),
+          content: Text(l10n.deleteEverythingDialogMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.cancel),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.clear();
+                if (!context.mounted) return;
+                await Future.wait([
+                  context.read<AddictionProvider>().loadAddictions(),
+                  context.read<SettingsProvider>().loadPreferences(),
+                ]);
+              },
+              child: Text(l10n.deleteEverythingConfirm),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildSystemSectionItems(
+    BuildContext context,
+    SettingsProvider settings,
+  ) {
+    final l10n = AppLocalizations.of(context)!;
+    return [
+      _sectionHeader(l10n.settingsSectionSystem, context),
+      ListTile(
+        title: Text(l10n.settingsAbout),
+        leading: const Icon(Icons.info_outline),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const AboutPage())),
+      ),
+      ListTile(
+        title: Text(l10n.settingsWhatsNew),
+        leading: const Icon(Icons.change_circle_outlined),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const WhatsNew())),
+      ),
+      ListTile(
+        title: Text(l10n.settingsEnjoyingApp),
+        leading: const Icon(Icons.favorite_outline),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (context) => const EnjoyingPage())),
+      ),
+      ListTile(
+        title: Text(l10n.settingsReportBug),
+        leading: const Icon(Icons.bug_report),
+        onTap: () async {
+          final info = await PackageInfo.fromPlatform();
+          launchUrlString(
+            "https://github.com/brandonp2412/Quitter/issues/new?body=App version: ${info.version}",
+          );
+        },
+      ),
+      ListTile(
+        title: Text(l10n.settingsExportData),
+        leading: const Icon(Icons.upload_file),
+        onTap: () => _exportData(context),
+      ),
+      ListTile(
+        title: Text(l10n.settingsImportData),
+        leading: const Icon(Icons.file_download),
+        onTap: () => _importData(context),
+      ),
+      ListTile(
+        title: Text(l10n.settingsDeleteEverything),
+        leading: const Icon(Icons.delete),
+        onTap: () => _deleteEverything(context),
+      ),
+    ];
+  }
+
+  List<Widget> _buildFilteredSettingsItems(
+    BuildContext context,
+    SettingsProvider settings,
+  ) {
+    final sections = [
+      _buildAppearanceSectionItems(context, settings),
+      _buildSecuritySectionItems(context, settings),
+      _buildNotificationsSectionItems(context, settings),
+      _buildSystemSectionItems(context, settings),
+    ];
+
+    if (_searchQuery.isEmpty) {
+      final result = <Widget>[];
+      for (int i = 0; i < sections.length; i++) {
+        result.addAll(sections[i]);
+        if (i < sections.length - 1) result.add(const SizedBox(height: 24));
+      }
+      return result;
+    }
+
+    final result = <Widget>[];
+    for (final section in sections) {
+      final header = section.first;
+      final items = section.skip(1).toList();
+      final matching = items
+          .where((item) => _matchesSearch(item, _searchQuery))
+          .toList();
+      if (matching.isNotEmpty) {
+        result.add(header);
+        result.addAll(matching);
+        result.add(const SizedBox(height: 8));
+      }
+    }
+    return result;
+  }
+
+  bool _matchesSearch(Widget item, String query) {
+    if (query.isEmpty) return true;
+
+    final lowerCaseQuery = query.toLowerCase();
+
+    if (item is Padding && item.child is Text) {
+      final text = item.child as Text;
+      if (text.data != null &&
+          text.data!.toLowerCase().contains(lowerCaseQuery)) {
+        return true;
+      }
+    }
+    if (item is ListTile && item.title is TextField) {
+      final title =
+          (item.title as TextField).decoration?.labelText?.toLowerCase() ?? '';
+      final subtitle = (item.subtitle as Text?)?.data?.toLowerCase() ?? '';
+      if (title.contains(lowerCaseQuery) || subtitle.contains(lowerCaseQuery)) {
+        return true;
+      }
+    }
+    if (item is ListTile && item.title is Text) {
+      final title = (item.title as Text).data?.toLowerCase() ?? '';
+      final subtitle = (item.subtitle as Text?)?.data?.toLowerCase() ?? '';
+      if (title.contains(lowerCaseQuery) || subtitle.contains(lowerCaseQuery)) {
+        return true;
+      }
+    }
+    if (item is SwitchListTile) {
+      final title = (item.title as Text).data?.toLowerCase() ?? '';
+      final subtitle = (item.subtitle as Text?)?.data?.toLowerCase() ?? '';
+      if (title.contains(lowerCaseQuery) || subtitle.contains(lowerCaseQuery)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  Widget _sectionHeader(String title, BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Text(title, style: Theme.of(context).textTheme.headlineSmall),
+    );
+  }
+
+  String _localeDisplayName(AppLocalizations l10n, String locale) {
+    return switch (locale) {
+      'system' => l10n.settingsLocaleSystem,
+      'en' => l10n.settingsLocaleEnglish,
+      'ar' => l10n.settingsLocaleArabic,
+      'de' => l10n.settingsLocaleGerman,
+      'ja' => l10n.settingsLocaleJapanese,
+      'fr' => l10n.settingsLocaleFrench,
+      'ru' => l10n.settingsLocaleRussian,
+      'es' => l10n.settingsLocaleSpanish,
+      'zh' => l10n.settingsLocaleSimplifiedChinese,
+      'zh-Hant' => l10n.settingsLocaleTraditionalChinese,
+      'id' => l10n.settingsLocaleIndonesian,
+      'pl' => l10n.settingsLocalePolish,
+      'th' => l10n.settingsLocaleThai,
+      _ => l10n.settingsLocaleUnsupported,
+    };
+  }
+
+  void _showLocaleDialog(BuildContext context, SettingsProvider settings) {
+    final l10n = AppLocalizations.of(context)!;
+    _showSelectionDialog<String>(
+      context: context,
+      title: l10n.settingsLocale,
+      currentValue: settings.locale,
+      options: [
+        'system',
+        for (final locale in AppLocalizations.supportedLocales)
+          localePreferenceValue(locale),
+      ],
+      getDisplayName: (value) => _localeDisplayName(l10n, value),
+      onChanged: settings.setLocale,
+    );
+  }
+
+  void _showSelectionDialog<T>({
+    required BuildContext context,
+    required String title,
+    required T currentValue,
+    required List<T> options,
+    required String Function(T) getDisplayName,
+    required Future<void> Function(T) onChanged,
+  }) {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: SingleChildScrollView(
+          child: RadioGroup<T>(
+            groupValue: currentValue,
+            onChanged: (value) async {
+              if (value == null) return;
+              await onChanged(value);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Column(
+              children: options.map((option) {
+                return RadioListTile<T>(
+                  title: Text(getDisplayName(option)),
+                  value: option,
+                  selected: currentValue == option,
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showNotificationFrequencyDialog(
+    BuildContext context,
+    SettingsProvider settings,
+  ) async {
+    final everyCtrl = TextEditingController(
+      text: settings.notifyEvery.toString(),
+    );
+    var selectedAt = settings.notifyAt;
+    final atCtrl = TextEditingController(
+      text: getTimeString(context, selectedAt),
+    );
+
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (context) {
+          final l10n = AppLocalizations.of(context)!;
+          return AlertDialog(
+            title: Text(l10n.settingsNotificationFrequency),
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  TextField(
+                    controller: everyCtrl,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    onTap: () => selectAll(everyCtrl),
+                    decoration: InputDecoration(
+                      labelText: l10n.notificationFrequencyNotifyEvery,
+                      suffixText: l10n.notificationFrequencyDays,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: atCtrl,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: l10n.notificationFrequencyAt,
+                      border: OutlineInputBorder(),
+                    ),
+                    autofocus: true,
+                    onTap: () async {
+                      final hours = selectedAt ~/ 60;
+                      final minutes = selectedAt % 60;
+                      final result = await showTimePicker(
+                        context: context,
+                        initialTime: TimeOfDay(hour: hours, minute: minutes),
+                      );
+
+                      if (result != null && context.mounted) {
+                        selectedAt = result.hour * 60 + result.minute;
+                        atCtrl.text = getTimeString(context, selectedAt);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(l10n.cancel),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final days = int.tryParse(everyCtrl.text);
+                  if (days != null && days >= 0) {
+                    await settings.setNotificationSchedule(
+                      days: days,
+                      at: selectedAt,
+                    );
+                    if (days > 0) {
+                      await testNotification(
+                        title: l10n.notificationTestTitle,
+                        body: l10n.notificationTestBody(days),
+                      );
+                    }
+                    if (context.mounted) Navigator.pop(context);
+                  }
+                },
+                child: Text(l10n.notificationFrequencySave),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      everyCtrl.dispose();
+      atCtrl.dispose();
+    }
+  }
+
+  List<Widget> _buildToggleList(List<_ToggleItem> items) {
+    final List<Widget> widgets = [];
+
+    for (int i = 0; i < items.length; i++) {
+      final item = items[i];
+      widgets.add(
+        SwitchListTile(
+          key: item.notifyPrefsKey == null
+              ? null
+              : ValueKey('notify_${item.notifyPrefsKey}'),
+          secondary: Icon(item.icon),
+          title: Text(item.title),
+          subtitle: Text(item.subtitle),
+          value: item.value,
+          onChanged: (value) {
+            item.onChanged(value);
+            if (value && item.notifyDisplayName != null) {
+              if (item.notifyPrefsKey != null) {
+                testAddictionNotification(
+                  item.notifyPrefsKey!,
+                  item.notifyDisplayName!,
+                );
+              } else if (item.notifyQuitDate != null) {
+                testCustomEntryNotification(
+                  item.notifyDisplayName!,
+                  item.notifyQuitDate!,
+                );
+              }
+            }
+          },
+        ),
+      );
+    }
+
+    return widgets;
+  }
+}
+
+class _ColorSchemePicker extends StatelessWidget {
+  static const _seedColors = {
+    ColorSchemeType.blue: Color(0xFF1976D2),
+    ColorSchemeType.green: Color(0xFF2E8B57),
+    ColorSchemeType.red: Color(0xFFD32F2F),
+    ColorSchemeType.purple: Color(0xFF7B1FA2),
+    ColorSchemeType.orange: Color(0xFFF57C00),
+  };
+
+  final SettingsProvider settings;
+
+  const _ColorSchemePicker({required this.settings});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.palette),
+              const SizedBox(width: 16),
+              Text(
+                l10n.settingsColorScheme,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: ColorSchemeType.values.map((type) {
+              final isSelected = settings.colorSchemeType == type;
+              final isDynamic = type == ColorSchemeType.dynamic;
+              final seedColor = _seedColors[type];
+              return GestureDetector(
+                onTap: () => settings.colorSchemeType = type,
+                child: Tooltip(
+                  message: AppScheme.getName(type, l10n),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: isDynamic ? null : seedColor,
+                      gradient: isDynamic
+                          ? const SweepGradient(
+                              colors: [
+                                Color(0xFFD32F2F),
+                                Color(0xFFF57C00),
+                                Color(0xFF388E3C),
+                                Color(0xFF1976D2),
+                                Color(0xFF7B1FA2),
+                                Color(0xFFD32F2F),
+                              ],
+                            )
+                          : null,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.onSurface
+                            : Colors.transparent,
+                        width: 3,
+                      ),
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check, color: Colors.white, size: 20)
+                        : null,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleItem {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final void Function(bool) onChanged;
+
+  /// When set, enabling this toggle fires a preview notification using the real
+  /// days-clean count stored under [notifyPrefsKey] in SharedPreferences.
+  final String? notifyPrefsKey;
+
+  /// Display name used in the preview notification title.
+  final String? notifyDisplayName;
+
+  /// When set (for custom entries), fires a preview notification using this
+  /// quit date ISO string directly instead of loading from SharedPreferences.
+  final String? notifyQuitDate;
+
+  const _ToggleItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+    this.notifyPrefsKey,
+    this.notifyDisplayName,
+    this.notifyQuitDate,
+  });
+}
