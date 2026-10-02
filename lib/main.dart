@@ -16,6 +16,7 @@ import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:quitter/logging.dart';
 import 'package:quitter/locale_utils.dart';
 import 'package:quitter/pin_page.dart';
+import 'package:quitter/settings_page.dart';
 import 'package:quitter/settings_provider.dart';
 import 'package:quitter/stats_page.dart';
 import 'package:quitter/tasks.dart';
@@ -189,6 +190,18 @@ class _QuitterAppState extends State<QuitterApp>
                         child: Column(
                           children: [
                             AppBar(
+                              actions: [
+                                IconButton(
+                                  tooltip: 'Einstellungen',
+                                  icon: const Icon(Icons.settings_outlined),
+                                  onPressed: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const SettingsPage(),
+                                    ),
+                                  ),
+                                ),
+                              ],
                               title: AnimatedBuilder(
                                 animation: _tabController.animation!,
                                 builder: (context, child) {

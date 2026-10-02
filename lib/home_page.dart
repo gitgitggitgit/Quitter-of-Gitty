@@ -32,7 +32,6 @@ import 'package:quitter/nicotine_pouches.dart';
 import 'package:quitter/opioid_page.dart';
 import 'package:quitter/pornography_page.dart';
 import 'package:quitter/quit_card.dart';
-import 'package:quitter/settings_page.dart';
 import 'package:quitter/settings_provider.dart';
 import 'package:quitter/smoking_page.dart';
 import 'package:quitter/social_media_page.dart';
@@ -569,41 +568,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       child: Scaffold(
         body: CustomScrollView(
           slivers: [
-            SliverAppBar(
-              floating: true,
-              snap: true,
-              primary: false,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              toolbarHeight: 64,
-              flexibleSpace: Container(
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
-                alignment: Alignment.topCenter,
-                child: SearchBar(
-                  controller: _searchController,
-                  leading: Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: const Icon(Icons.search),
-                  ),
-                  hintText: l10n.homeSearchHint,
-                  trailing: [
-                    if (_searchQuery.isNotEmpty)
-                      IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () => _searchController.clear(),
-                      ),
-                    IconButton(
-                      icon: const Icon(Icons.settings),
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsPage(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
