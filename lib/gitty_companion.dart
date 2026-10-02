@@ -63,7 +63,7 @@ const gittyCompanions = [
   ),
   GittyCompanion(
     id: 'ratte_w',
-    name: 'Gitta',
+    name: 'Gitty',
     story:
         'Wuchs zwischen Mülltonnen auf, hat jedes Schloss der Stadt geknackt und weiß: Hinter jeder Kette steckt nur ein Schloss.',
     asset: kFemaleImagesReady
@@ -72,7 +72,7 @@ const gittyCompanions = [
   ),
   GittyCompanion(
     id: 'fuchs_w',
-    name: 'Pjotra',
+    name: 'Mica',
     story:
         'Raucht seit Jahren hinter den Mülltonnen und führt Buch über jede Ausrede. Die Liste ist lang, der Aschenbecher voll.',
     asset: kFemaleImagesReady
