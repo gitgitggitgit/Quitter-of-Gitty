@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:quitter/addiction_provider.dart';
 import 'package:quitter/confetti_widget.dart';
+import 'package:quitter/gitty_daily_milestones.dart';
 import 'package:quitter/l10n/generated/app_localizations.dart';
 import 'package:quitter/quit_milestone.dart';
 import 'package:quitter/settings_provider.dart';
@@ -57,6 +58,10 @@ class _QuitMilestonesPageState extends State<QuitMilestonesPage> {
   DateTime quitDate = DateTime.now();
   int? _targetIndex;
   final _targetTileKey = GlobalKey();
+  late final List<QuitMilestone> _milestones = gittyDailyMilestones(
+    widget.storageKey,
+    widget.milestones,
+  );
 
   @override
   void initState() {
@@ -74,11 +79,11 @@ class _QuitMilestonesPageState extends State<QuitMilestonesPage> {
 
     if (started) {
       final currentDayFromQuitOn = daysCeil(quitDate.toIso8601String());
-      final nextIndex = widget.milestones.indexWhere(
+      final nextIndex = _milestones.indexWhere(
         (m) => currentDayFromQuitOn < m.day,
       );
       _targetIndex = nextIndex <= 0
-          ? (nextIndex == -1 ? widget.milestones.length - 1 : 0)
+          ? (nextIndex == -1 ? _milestones.length - 1 : 0)
           : nextIndex - 1;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final ctx = _targetTileKey.currentContext;
@@ -266,7 +271,7 @@ class _QuitMilestonesPageState extends State<QuitMilestonesPage> {
                           final List<int> daysToClear = [];
                           for (int achievedDay in allDaysAchieved) {
                             int closestMilestoneDay = 0;
-                            for (QuitMilestone m in widget.milestones) {
+                            for (QuitMilestone m in _milestones) {
                               if (m.day <= achievedDay) {
                                 closestMilestoneDay = m.day;
                               } else {
@@ -470,14 +475,13 @@ class _QuitMilestonesPageState extends State<QuitMilestonesPage> {
                     bottom: listBottomPadding,
                   ),
                   child: Column(
-                    children: widget.milestones.asMap().entries.map((entry) {
+                    children: _milestones.asMap().entries.map((entry) {
                       final index = entry.key;
                       final milestone = entry.value;
                       final isCompleted = days >= milestone.day;
                       final isNext =
                           !isCompleted &&
-                          (index == 0 ||
-                              days >= widget.milestones[index - 1].day);
+                          (index == 0 || days >= _milestones[index - 1].day);
 
                       final allDaysAchieved =
                           widget.customDaysAchieved.isNotEmpty
@@ -487,7 +491,7 @@ class _QuitMilestonesPageState extends State<QuitMilestonesPage> {
                       final List<int> milestoneDaysToMark = [];
                       for (int achievedDay in allDaysAchieved) {
                         int closestMilestoneDay = 0;
-                        for (QuitMilestone m in widget.milestones) {
+                        for (QuitMilestone m in _milestones) {
                           if (m.day <= achievedDay) {
                             closestMilestoneDay = m.day;
                           } else {
@@ -507,7 +511,7 @@ class _QuitMilestonesPageState extends State<QuitMilestonesPage> {
                           milestone: milestone,
                           isCompleted: isCompleted,
                           isNext: isNext,
-                          isLast: index == widget.milestones.length - 1,
+                          isLast: index == _milestones.length - 1,
                           daysAchieved: milestoneDaysToMark,
                         ),
                       );
