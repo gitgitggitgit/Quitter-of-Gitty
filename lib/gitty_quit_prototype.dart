@@ -244,6 +244,39 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
     return list;
   }
 
+  // Farbpaare aus der aktuellen Suchtauswahl.
+  static const _selectionPalettes = <String, List<Color>>{
+    'adderall': [Color(0xFFFF8C42), Color(0xFFFF6B35)],
+    'ssri': [Color(0xFF7C3AED), Color(0xFF4F46E5)],
+    'snri': [Color(0xFF6D28D9), Color(0xFF7C3AED)],
+    'tca': [Color(0xFF5B21B6), Color(0xFF6D28D9)],
+    'maoi': [Color(0xFF4C1D95), Color(0xFF5B21B6)],
+    'alcohol': [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+    'benzos': [Color(0xFF6D5DD3), Color(0xFF1E1B4B)],
+    'cocaine': [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+    'marijuana': [Color.fromARGB(255, 132, 230, 128), Color.fromARGB(255, 30, 87, 3)],
+    'nitrous_oxide': [Color(0xFF38BDF8), Color(0xFF7DD3FC)],
+    'meth': [Color(0xFF14B8A6), Color(0xFF0D9488)],
+    'nicotine_pouches': [Color(0xFFF59E0B), Color(0xFFEF4444)],
+    'heroin': [Color(0xFFEC4899), Color(0xFFBE185D)],
+    'opioids': [Color(0xFFEC4899), Color(0xFFBE185D)],
+    'pornography': [Color(0xFFF43F5E), Color(0xFFE11D48)],
+    'smoking': [Color(0xFF10B981), Color(0xFF059669)],
+    'social_media': [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+    'vaping': [Color(0xFF06B6D4), Color(0xFF0EA5E9)],
+    'kratom': [Color(0xFF6D9F4E), Color(0xFF3F6B2E)],
+    'gabapentinoids': [Color(0xFF94A3B8), Color(0xFF475569)],
+    'ghb': [Color(0xFF60A5FA), Color(0xFF1E3A8A)],
+    'ketamine': [Color(0xFF818CF8), Color(0xFF4338CA)],
+    'inhalants': [Color(0xFF9CA3AF), Color(0xFF4B5563)],
+    'synthetic_cannabinoids': [Color(0xFFA3E635), Color(0xFF4D7C0F)],
+    'mdma': [Color(0xFFF472B6), Color(0xFFA855F7)],
+    'steroids': [Color(0xFFEF4444), Color(0xFF7F1D1D)],
+    'fentanyl': [Color(0xFF7C3AED), Color(0xFF3B0764)],
+    'smokeless_tobacco': [Color(0xFF78350F), Color(0xFF451A03)],
+    'caffeine': [Color(0xFFA67C52), Color(0xFF6F4E37)],
+  };
+
   static String _euro(double value) =>
       '${value.toStringAsFixed(2).replaceAll('.', ',')} €';
 
@@ -309,6 +342,23 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
           (h) => h.key == _selectedKey,
           orElse: () => habits.first,
         );
+        var palette = _selectionPalettes[habit.key];
+        if (palette == null) {
+          for (final entry in addictions.entries) {
+            if (entry.id != habit.key) continue;
+            final title = entry.title.trim().toLowerCase();
+            palette = (title == 'koffein' || title == 'caffeine')
+                ? _selectionPalettes['caffeine']
+                : <Color>[entry.color, entry.color];
+            break;
+          }
+        }
+        final panelBase = palette?.first ?? comicMint;
+        final panelFill = Color.lerp(panelBase, Colors.white, 0.72)!;
+        final panelShadow = theme.brightness == Brightness.dark
+            ? Color.lerp(panelBase, Colors.white, 0.35)!
+            : comicInk;
+
         final elapsed = DateTime.now().difference(habit.start);
         final days = elapsed.isNegative ? 0 : elapsed.inDays;
         final dayNumber = days + 1;
@@ -344,8 +394,9 @@ class _GittyQuitPrototypeState extends State<GittyQuitPrototype> {
         }
 
         return ComicPanel(
-          color: comicMint,
-          splat: true,
+          color: panelFill,
+          shadowColor: panelShadow,
+          splat: false,
           onTap: () => setState(() => _expanded = !_expanded),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
