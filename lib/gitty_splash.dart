@@ -128,7 +128,7 @@ class _GittySplashState extends State<_GittySplash> with TickerProviderStateMixi
                         ),
                         clipBehavior: Clip.antiAlias,
                         child: Image.asset(
-                          'assets/gitty/ratte.png',
+                          'assets/gitty/ratte_gitty_m.png',
                           fit: BoxFit.cover,
                           alignment: Alignment.topCenter,
                           cacheWidth: 500,
@@ -146,7 +146,7 @@ class _GittySplashState extends State<_GittySplash> with TickerProviderStateMixi
                     opacity: title1,
                     child: SlideTransition(
                       position: Tween(begin: const Offset(-0.3, 0), end: Offset.zero).animate(title1),
-                      child: Transform.rotate(angle: -0.03, child: Text('Sauber werden', style: big)),
+                      child: Transform.rotate(angle: -0.03, child: Text('Quitty', style: big)),
                     ),
                   ),
                   FadeTransition(

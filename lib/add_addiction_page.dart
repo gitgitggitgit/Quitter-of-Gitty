@@ -650,6 +650,47 @@ class _AddAddictionPageState extends State<AddAddictionPage> {
       );
     }
 
+    // Nur aus der neuen Auswahl ausblenden.
+    // Bestehende Tracker und ihre Definitionen bleiben erhalten.
+    const hiddenOptionIds = <String>{
+      'steroids',
+      'smokeless_tobacco',
+      'gabapentinoids',
+      'inhalants',
+      'kratom',
+      'maoi',
+      'nicotine_pouches',
+      'snri',
+      'ssri',
+      'synthetic_cannabinoids',
+    };
+    options.removeWhere((option) => hiddenOptionIds.contains(option.id));
+
+    // Koffein nutzt die vorhandene Speicherung eigener Tracker.
+    options.add(
+      const _AddictionOption(
+        id: 'caffeine',
+        title: 'Koffein',
+        icon: Icons.local_cafe,
+        gradientColors: [
+          Color(0xFFA67C52),
+          Color(0xFF6F4E37),
+        ],
+        destination: EditEntryPage(initialTitle: 'Koffein'),
+        aliases: [
+          'koffein',
+          'caffeine',
+          'kaffee',
+          'coffee',
+          'energy',
+          'energydrink',
+          'energiegetraenk',
+          'tee',
+          'tea',
+        ],
+      ),
+    );
+
     options.sort(
       (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
     );
