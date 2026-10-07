@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quitter/comic_style.dart';
 
-/// Zeigt den Splash 5 Sekunden (Tipp überspringt) und blendet dann [child] ein.
+/// Zeigt den Splash 3,5 Sekunden (Tipp überspringt) und blendet dann [child] ein.
 /// Die Schnittstelle ist unverändert: GittySplashGate(child: ...).
 class GittySplashGate extends StatefulWidget {
   const GittySplashGate({super.key, required this.child});
@@ -17,7 +17,7 @@ class GittySplashGate extends StatefulWidget {
 }
 
 class _GittySplashGateState extends State<GittySplashGate> {
-  static const duration = Duration(seconds: 5);
+  static const duration = Duration(milliseconds: 3500);
   bool _done = false;
   Timer? _timer;
 
@@ -63,14 +63,12 @@ class _GittySplashState extends State<_GittySplash> with TickerProviderStateMixi
       AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
   late final AnimationController _intro =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))..forward();
-  late final AnimationController _bar =
-      AnimationController(vsync: this, duration: widget.duration)..forward();
+
 
   @override
   void dispose() {
     _blob.dispose();
     _intro.dispose();
-    _bar.dispose();
     super.dispose();
   }
 
@@ -169,21 +167,6 @@ class _GittySplashState extends State<_GittySplash> with TickerProviderStateMixi
                     ),
                   ),
                   const Spacer(flex: 4),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(60, 0, 60, 28),
-                    child: AnimatedBuilder(
-                      animation: _bar,
-                      builder: (_, __) => ClipRRect(
-                        borderRadius: BorderRadius.circular(99),
-                        child: LinearProgressIndicator(
-                          value: _bar.value,
-                          minHeight: 8,
-                          backgroundColor: Colors.white70,
-                          color: comicInk,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
