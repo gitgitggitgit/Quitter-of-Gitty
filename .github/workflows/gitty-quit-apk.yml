@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/gitty-quit-prototype
+      - feature/companion-stories
 
 jobs:
   build-apk:
