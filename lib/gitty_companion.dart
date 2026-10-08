@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:quitter/comic_style.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Set to true after the four female images exist in assets/gitty/:
-/// taube_w.png, ratte_w.png, fuchs_w.png, waschbaer_w.png
-const bool kFemaleImagesReady = false;
 
 class GittyCompanion {
   const GittyCompanion({
@@ -26,67 +23,59 @@ class GittyCompanion {
 const gittyCompanions = [
   GittyCompanion(
     id: 'taube',
-    name: 'Dieter',
+    name: 'Didi',
     story:
         'Hat jahrelang auf Dächern aufgelegt und dabei den Takt verloren, aber nie den Überblick.',
-    asset: 'assets/gitty/taube.png',
+    asset: 'assets/gitty/taube_didi.png',
   ),
   GittyCompanion(
     id: 'ratte',
     name: 'Gitty',
     story:
         'Wuchs zwischen Mülltonnen auf und weiß, dass hinter jeder Kette nur ein Schloss steckt.',
-    asset: 'assets/gitty/ratte.png',
+    asset: 'assets/gitty/ratte_gitty_m.png',
   ),
   GittyCompanion(
     id: 'fuchs',
     name: 'Pjotre',
     story:
         'Raucht seit Jahren hinter den Mülltonnen und kennt jede Ausrede persönlich. Die letzte Kippe ist noch nicht ausgedrückt, aber er arbeitet dran.',
-    asset: 'assets/gitty/fuchs.png',
+    asset: 'assets/gitty/fuchs_pjotre.png',
   ),
   GittyCompanion(
     id: 'waschbaer',
     name: 'Rocco',
     story:
         'Sammelt, was andere wegwerfen, und leuchtet in die dunkelsten Ecken, bis wieder Licht da ist.',
-    asset: 'assets/gitty/waschbaer.png',
+    asset: 'assets/gitty/waschbaer_rocco.png',
   ),
   GittyCompanion(
     id: 'taube_w',
-    name: 'Dolores',
+    name: 'Panthera',
     story:
         'Hat jahrelang auf Dächern aufgelegt, bis die Nachbarn die Polizei riefen. Den Takt hat sie wiedergefunden, die Lautstärke nie.',
-    asset: kFemaleImagesReady
-        ? 'assets/gitty/taube_w.png'
-        : 'assets/gitty/taube.png',
+    asset: 'assets/gitty/taube_didi.png',
   ),
   GittyCompanion(
     id: 'ratte_w',
-    name: 'Gitta',
+    name: 'Gitty',
     story:
         'Wuchs zwischen Mülltonnen auf, hat jedes Schloss der Stadt geknackt und weiß: Hinter jeder Kette steckt nur ein Schloss.',
-    asset: kFemaleImagesReady
-        ? 'assets/gitty/ratte_w.png'
-        : 'assets/gitty/ratte.png',
+    asset: 'assets/gitty/ratte_gitty_w.png',
   ),
   GittyCompanion(
     id: 'fuchs_w',
-    name: 'Pjotra',
+    name: 'Mica',
     story:
         'Raucht seit Jahren hinter den Mülltonnen und führt Buch über jede Ausrede. Die Liste ist lang, der Aschenbecher voll.',
-    asset: kFemaleImagesReady
-        ? 'assets/gitty/fuchs_w.png'
-        : 'assets/gitty/fuchs.png',
+    asset: 'assets/gitty/fuchs_mica.png',
   ),
   GittyCompanion(
     id: 'waschbaer_w',
-    name: 'Rosa',
+    name: 'Ricci',
     story:
         'Sammelt, was andere wegwerfen, und leuchtet mit ihrer Taschenlampe in die dunkelsten Ecken, bis wieder Licht da ist.',
-    asset: kFemaleImagesReady
-        ? 'assets/gitty/waschbaer_w.png'
-        : 'assets/gitty/waschbaer.png',
+    asset: 'assets/gitty/waschbaer_ricci.png',
   ),
 ];
 

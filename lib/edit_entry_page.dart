@@ -13,8 +13,13 @@ import 'package:quitter/icon_picker.dart';
 
 class EditEntryPage extends StatefulWidget {
   final Entry? entry;
+  final String initialTitle;
 
-  const EditEntryPage({super.key, this.entry});
+  const EditEntryPage({
+    super.key,
+    this.entry,
+    this.initialTitle = '',
+  });
 
   @override
   State<EditEntryPage> createState() => _EditEntryPageState();
@@ -31,7 +36,7 @@ class _EditEntryPageState extends State<EditEntryPage> {
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.entry?.title ?? '');
+    _titleController = TextEditingController(text: widget.entry?.title ?? widget.initialTitle);
     _quitDate = widget.entry?.quitDate ?? DateTime.now();
     _quitDateController = TextEditingController();
     _selectedIcon = widget.entry?.icon ?? Icons.star;
