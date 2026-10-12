@@ -9,8 +9,6 @@
 A free and open-source quit tracker built around local data, useful milestones, and a calm interface.
 
 <p>
-  <a href="https://github.com/brandonp2412/Quitter/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/brandonp2412/quitter?style=flat-square"></a>
-  <a href="https://github.com/brandonp2412/Quitter/releases"><img alt="Release downloads" src="https://img.shields.io/github/downloads/brandonp2412/Quitter/total.svg?style=flat-square"></a>
   <a href="LICENSE.md"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-8b75b3?style=flat-square"></a>
 </p>
 
